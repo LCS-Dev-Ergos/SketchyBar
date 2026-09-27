@@ -76,6 +76,11 @@ scripts the tests run write only to a temporary directory.
   bar or WindowServer connection, waits for one update, then verifies that a
   later event and a forced update still run. It fails before the 16 ms burst
   coalescer.
+- `app_window_registration_tests` simulates a full scan of 11 Desktops and
+  checks that the window notification list is registered once afterward;
+  a scan with no displays does not register, and a single-space update still
+  registers immediately. The full-scan assertion fails on the earlier
+  per-Desktop registration path.
 - `sanitize` instruments sketchybar and the tests with ASan and UBSan.
 - `thread-sanitize` uses TSan and UBSan instead. Run it separately from ASan.
   Both stop at the first undefined behaviour.

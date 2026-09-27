@@ -171,3 +171,44 @@ these checks. Bar and display queries answered with 126 items and two displays.
 - After the user clicked an application and an empty bar area,
   `window_order` found 58 visible item windows and zero covered by the bar
   background (exit 0).
+
+## After activating lcs.3
+
+On 2026-09-27 the user switched the full Darwin generation, including
+`v2.24.0-lcs.3` and yabai `lcs.18`. The signed SketchyBar LaunchAgent kept
+the same PID through the checks below, reported 126 items and returned to the
+initial Desktop 11 after each controlled run. One SbarLua configuration process
+and one each CPU, Brew and network provider remained after the probes. The
+duplicate-item errors in the persistent service log predate this LaunchAgent.
+
+- Two bursts of three `--reload` requests each returned to 126 items with no
+  new missing-item errors and no persistent duplicate helpers. The first
+  burst first reported all items after 6.644 s and was stable after 7.660 s;
+  the second was stable after 2.326 s. This verifies the overlap fix but also
+  reproduces the intermittent slow rebuild on `lcs.3`. A process trace in the
+  second burst showed one Lua child of SketchyBar. Other Lua PIDs lasted less
+  than 0.1 s and were children of that Lua process, not independent
+  configuration instances.
+- Six controlled 5-to-6-to-5 Desktop transitions, with the same polling
+  method as the `lcs.2` baseline, gave median yabai focus 0.195 s and median
+  bar highlight 0.315 s. The bar-minus-yabai gaps were 0.010-0.182 s.
+  The corresponding `lcs.2` medians were 0.196 s and 0.316 s, so this
+  fixed-workload check does not show a navigation regression. A separate
+  cross-display entry into space 5 was slower and is not part of that
+  comparison.
+- From 20:36:22 to 20:37:31 CEST, 60 non-initial `top` samples found
+  SketchyBar CPU mean 0.58%, median 0.6%, maximum 1.3%. WindowServer mean
+  was 46.08%, median 46.0%, maximum 51.7%. The earlier `lcs.2` SketchyBar
+  mean was 0.59%. WindowServer's higher figure includes unrelated host load
+  and cannot be assigned to SketchyBar.
+
+An eight-second sample spanning five Desktop changes showed
+`update_all_spaces` repeatedly walking the 11 Desktop spaces. Its call tree
+included `SLSRequestNotificationsForWindows` after each space scan, including
+many synchronous SkyLight replies. The next development change keeps the
+per-space event registration for individual window changes but registers once
+after a full scan. A focused 11-space regression fails on the previous code
+and passes with this change. Release, ASan/UBSan and TSan/UBSan suites each
+pass 19/19. This change is not in the active release; a live latency gain has
+not been measured.
+The slow individual reload still needs a separate WindowServer investigation.

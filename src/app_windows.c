@@ -174,7 +174,10 @@ static void app_windows_post_event_for_space(struct app_windows* windows, uint64
   event_post(&event);
 }
 
-static void app_windows_update_space(struct app_windows* windows, uint64_t sid, bool silent) {
+static void app_windows_update_space(struct app_windows* windows,
+                                     uint64_t sid,
+                                     bool silent,
+                                     bool register_notifications) {
   app_windows_clear_space(windows, sid);
   CFArrayRef space_list_ref = cfarray_of_cfnumbers(&sid,
                                                    sizeof(uint64_t),
@@ -219,7 +222,7 @@ static void app_windows_update_space(struct app_windows* windows, uint64_t sid, 
 
   CFRelease(space_list_ref);
   if (!silent) app_windows_post_event_for_space(windows, sid);
-  app_windows_register_notifications();
+  if (register_notifications) app_windows_register_notifications();
 }
 
 struct window_spawn_data {
@@ -236,9 +239,9 @@ static void window_spawn_handler(uint32_t event, struct window_spawn_data* data,
   struct app_window window = { .wid = wid, .sid = sid, .pid = 0 };
 
   if (event == 1325 && app_window_suitable(&window)) {
-    app_windows_update_space(&g_windows, sid, false);
+    app_windows_update_space(&g_windows, sid, false, true);
   } else if (event == 1326 && app_windows_find(&g_windows, &window)) {
-    app_windows_update_space(&g_windows, sid, false);
+    app_windows_update_space(&g_windows, sid, false, true);
     struct app_window* window = app_windows_find_by_wid(&g_hidden_windows,
                                                         wid               );
     if (window) app_window_clear(window);
@@ -254,12 +257,12 @@ static void window_hide_handler(uint32_t event, uint32_t* window_id, size_t _, i
       if (!app_windows_find(&g_hidden_windows, window)) {
         app_windows_add(&g_hidden_windows, window);
       }
-      app_windows_update_space(&g_windows, window->sid, false);
+      app_windows_update_space(&g_windows, window->sid, false, true);
     }
   } else if (event == 815) {
     struct app_window* window = app_windows_find_by_wid(&g_hidden_windows, wid);
     if (window) {
-      app_windows_update_space(&g_windows, window->sid, false);
+      app_windows_update_space(&g_windows, window->sid, false, false);
       app_window_clear(window);
       app_windows_register_notifications();
     }
@@ -269,15 +272,18 @@ static void window_hide_handler(uint32_t event, uint32_t* window_id, size_t _, i
 static void update_all_spaces(struct app_windows* windows, bool silent) {
   uint32_t display_count = 0;
   uint32_t* displays = display_active_display_list(&display_count);
+  bool scanned = false;
   for (int i = 0; i < display_count; i++) {
     int space_count = 0;
     uint64_t* spaces = display_space_list(displays[i], &space_count);
     for (int j = 0; j < space_count; j++) {
-      app_windows_update_space(windows, spaces[j], silent);
+      app_windows_update_space(windows, spaces[j], silent, false);
+      scanned = true;
     }
     if (spaces) free(spaces);
   }
   if (displays) free(displays);
+  if (scanned) app_windows_register_notifications();
 }
 
 static void space_handler(uint32_t event, void* data, size_t data_length, void* context) {

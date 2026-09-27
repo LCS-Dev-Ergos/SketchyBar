@@ -138,6 +138,11 @@ sketchybar_test(reload_gate_tests tests/reload/gate.c ${SRC}/hotload.c)
 target_link_options(reload_gate_tests PRIVATE -F${PRIVATE_FRAMEWORKS})
 target_link_libraries(reload_gate_tests PRIVATE ${SKETCHYBAR_FRAMEWORKS})
 
+# Count WindowServer registrations across a complete Desktop-window scan.
+sketchybar_test(app_window_registration_tests tests/app_windows/registration.c)
+target_link_options(app_window_registration_tests PRIVATE -F${PRIVATE_FRAMEWORKS})
+target_link_libraries(app_window_registration_tests PRIVATE ${SKETCHYBAR_FRAMEWORKS})
+
 # The message handlers of the daemon, without bars and hence without windows
 # (tests/message/harness.h).
 function(sketchybar_message_test name source)

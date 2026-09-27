@@ -13,9 +13,9 @@ checks and exit criterion. Findings are referenced by their ids in the
 | 1. Dotfiles patches as commits | Done on `dev` |
 | 2. CMake and presets | Done on `dev` |
 | 3. VS Code workspace | Done on `dev` |
-| 4. CI and releases | Done: signed `v2.24.0-lcs.2` is active through Dotfiles |
+| 4. CI and releases | Done: signed `v2.24.0-lcs.3` is active through Dotfiles |
 | 5. Targeted hardening | Done, except the items listed in its section |
-| 6. Live baseline | In progress: Desktop, CPU, unlock and display wake checked; full system sleep unverified |
+| 6. Live baseline | In progress: `lcs.3` Desktop, CPU and burst reload checked; full system sleep unverified |
 | 7. Restructuring | Not started |
 | 8. Repository maintenance | Planned after safety, robustness and performance work |
 
@@ -115,6 +115,9 @@ separate changes after those behavior changes are stable.
   Six controlled Desktop switches, a one-minute CPU sample, lock/unlock,
   display power recovery and window ordering are recorded. The sleep request
   produced no system `Sleep`/`Wake` event, so full sleep recovery remains open.
+  After the `lcs.3` switch, six matched Desktop transitions and another
+  one-minute CPU sample stayed near the `lcs.2` baseline; two burst-reload
+  probes left one configuration process and one of each native provider.
 - Exit: measurements recorded in `docs/performance.md`.
 
 ## 7. Restructuring
@@ -132,11 +135,14 @@ the phase 6 baseline:
 - rendering at each display's scale, without copying backing stores, on a
   current display link;
 - authentication of message senders;
-- measure the new burst-reload gate after deployment: it prevents overlapping
-  Lua configurations, while the intermittent single-reload QuartzCore cost
-  still needs WindowServer evidence before changing window creation or
-  rendering; check whether the Dotfiles providers need an idempotent startup
-  mechanism if duplicates remain after the gate.
+- the live `lcs.3` burst-reload check found no persistent duplicate Lua or
+  native providers. The intermittent single-reload QuartzCore cost remains;
+  compare WindowServer diagnostics before changing window creation or
+  rendering. A profile of Desktop changes found repeated registration of the
+  same window notifications after each space scan. The development change
+  batches that registration once per full scan, with an 11-space regression;
+  measure it on the next installed release. If later Desktop notifications
+  still repeat the full scan, coalesce them with a separate behavioral check.
 
 ## 8. Repository maintenance
 
