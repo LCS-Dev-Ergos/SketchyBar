@@ -168,6 +168,33 @@ if(SKETCHYBAR_FUZZ)
                 -artifact_prefix=${CMAKE_BINARY_DIR}/fuzz/
                 ${corpus} ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/corpus/${target})
     endforeach()
+
+    # Exercise the daemon's command handlers with the message harness. Keep
+    # every handler instrumented, but replace script execution and bootstrap
+    # lookups; replies still travel through the harness's private Mach port.
+    set(FUZZ_DOMAIN_SOURCES ${SKETCHYBAR_SOURCES})
+    list(REMOVE_ITEM FUZZ_DOMAIN_SOURCES ${SRC}/script.c ${SRC}/mach.c)
+    add_library(fuzz_mach OBJECT ${SRC}/mach.c)
+    target_compile_definitions(fuzz_mach PRIVATE mach_get_bs_port=fuzz_mach_get_bs_port)
+    target_compile_options(fuzz_mach PRIVATE ${SKETCHYBAR_FUZZ_FLAGS})
+
+    add_executable(fuzz_domains tests/fuzz/domains.c tests/message/harness.c
+        ${FUZZ_DOMAIN_SOURCES} $<TARGET_OBJECTS:fuzz_mach>)
+    set_target_properties(fuzz_domains PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/fuzz
+        C_STANDARD 99 C_EXTENSIONS OFF
+        OBJC_STANDARD 99 OBJC_EXTENSIONS OFF)
+    target_include_directories(fuzz_domains PRIVATE ${SRC} ${CMAKE_CURRENT_SOURCE_DIR}/tests/message)
+    target_compile_options(fuzz_domains PRIVATE -g -UNDEBUG ${SKETCHYBAR_FUZZ_FLAGS})
+    target_link_options(fuzz_domains PRIVATE -F${PRIVATE_FRAMEWORKS} ${SKETCHYBAR_FUZZ_FLAGS})
+    target_link_libraries(fuzz_domains PRIVATE ${SKETCHYBAR_FRAMEWORKS})
+
+    set(domain_corpus ${CMAKE_BINARY_DIR}/fuzz/corpus/domains)
+    file(MAKE_DIRECTORY ${domain_corpus})
+    add_test(NAME fuzz_domains
+        COMMAND fuzz_domains -max_total_time=${SKETCHYBAR_FUZZ_SECONDS} -max_len=514 -timeout=10 -print_final_stats=1
+            -artifact_prefix=${CMAKE_BINARY_DIR}/fuzz/
+            ${domain_corpus} ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/corpus/domains)
 endif()
 
 # Tools that inspect the running bar, see docs/testing.md. They are never run

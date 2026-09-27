@@ -1,6 +1,6 @@
 # Builds and tests every push and pull request to dev, once more under ASan
 # and UBSan and under TSan, runs the static analyzer against its baseline and
-# fuzzes the message tokenizer. Tags named v<version>-lcs.<n> additionally
+# fuzzes message framing, tokens and safe command domains. Tags named v<version>-lcs.<n> additionally
 # produce a signed release tarball (archive/bin, archive/LICENSE.md).
 
 name: CI
@@ -142,7 +142,7 @@ jobs:
             -DCMAKE_OSX_SYSROOT="$(xcrun --sdk macosx --show-sdk-path)"
           cmake --build --preset fuzz --parallel
 
-      - name: Fuzz the message tokenizer
+      - name: Fuzz the message protocol
         run: ctest --preset fuzz --verbose --timeout 120
 
       - name: Upload failure inputs and test log

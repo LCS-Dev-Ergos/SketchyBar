@@ -102,9 +102,9 @@ separate changes after those behavior changes are stable.
 - Open: windows embedded in bars and popups may still be freed before a
   deferred frame update (R5, plausible, needs WindowServer to confirm); space
   indices of 32 and more are still shifted in `bar.c` and `bar_manager.c`
-  (phase 7); S2 is the scripting model (phase 7); fuzzing the message domains
-  through the harness needs `fork_exec` and bootstrap lookups stubbed first,
-  so that fuzzed commands cannot run scripts or reach the running bar.
+  (phase 7); S2 is the scripting model (phase 7). The message-domain fuzzer
+  now covers bounded `--add item`, `--set` and `--query` inputs through the
+  harness, with script execution and bootstrap lookups stubbed.
 
 ## 6. Live baseline
 

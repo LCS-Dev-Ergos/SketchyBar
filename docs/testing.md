@@ -109,6 +109,11 @@ toolchains. The targets use libFuzzer, ASan and UBSan:
 - `fuzz_message`: the checks of `src/mach_validate.h` on messages with any
   complex bit, descriptor count and type, followed by the tokenizer on every
   accepted descriptor.
+- `fuzz_domains`: the daemon's `--add item`, `--set` and safe `--query`
+  handlers through `tests/message/harness.c`. Each input creates and destroys
+  an isolated bar manager without bar windows. Script execution and Mach
+  bootstrap lookups are stubbed; the selected domain cannot become `--exit`.
+  It fuzzes item names and selected property values with printable ASCII.
 
 Each target runs for `SKETCHYBAR_FUZZ_SECONDS` (default 30) with a 10-second
 limit per input. Seeds live in `tests/fuzz/corpus/`; generated inputs go to
