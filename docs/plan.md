@@ -13,7 +13,7 @@ checks and exit criterion. Findings are referenced by their ids in the
 | 1. Dotfiles patches as commits | Done on `dev` |
 | 2. CMake and presets | Done on `dev` |
 | 3. VS Code workspace | Done on `dev` |
-| 4. CI and releases | CI done; the first release tag and the Dotfiles package wait for the user |
+| 4. CI and releases | Done: `v2.24.0-lcs.1` is released and Dotfiles installs it from the next switch |
 | 5. Targeted hardening | Done, except the items listed in its section |
 | 6. Live baseline | Not started; needs the user's agreement |
 | 7. Restructuring | Not started |
