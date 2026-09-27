@@ -21,8 +21,9 @@ fuzz presets target macOS 14, the target of the Nix clang runtimes.
 
 ## CTest and sanitizers
 
-None of the tests opens a window, talks to WindowServer or contacts the
-running bar.
+None of the tests opens a window or contacts the running bar. The message
+tests reach WindowServer only through read-only CoreGraphics queries, and the
+scripts the tests run write only to a temporary directory.
 
 - `version` runs `sketchybar --version`, which exits before the client or
   daemon starts.
@@ -37,8 +38,21 @@ running bar.
   fixed times, so a slow runner passes them.
 - `bar_level_tests` checks the bar background level against the item,
   desktop, normal window and menu bar levels for every `topmost` setting.
+- `mach_server_tests` sends client, inline, unterminated and descriptorless
+  messages to the receive callback of `src/mach.c` on a private port.
+- `mach_send_tests` sends events to a full queue, which must time out and
+  release the rights of the undelivered messages.
+- `script_tests` runs scripts through `src/script.c`: the environment, spaced
+  configuration paths and the alarm, shortened to one second.
+- `message_*_tests` send commands to the daemon's message handlers through
+  `tests/message/harness.h`, which links every source but `main` and creates
+  no bar, so items never get windows. Without a WindowServer connection every
+  SkyLight query fails, as it may during a wake. They cover property
+  animations, out-of-range numbers and indices, WindowServer failures, item
+  memory and removal during animations.
 - `sanitize` instruments sketchybar and the tests with ASan and UBSan.
 - `thread-sanitize` uses TSan and UBSan instead. Run it separately from ASan.
+  Both stop at the first undefined behaviour.
 
 ```sh
 cmake --preset sanitize
@@ -90,6 +104,9 @@ toolchains. The targets use libFuzzer, ASan and UBSan:
   (`src/misc/helpers.h`), on inputs framed like client messages: tokens,
   key-value pairs as `--set` packs them, comma separated lists, numbers and
   boolean states.
+- `fuzz_message`: the checks of `src/mach_validate.h` on messages with any
+  complex bit, descriptor count and type, followed by the tokenizer on every
+  accepted descriptor.
 
 Each target runs for `SKETCHYBAR_FUZZ_SECONDS` (default 30) with a 10-second
 limit per input. Seeds live in `tests/fuzz/corpus/`; generated inputs go to
