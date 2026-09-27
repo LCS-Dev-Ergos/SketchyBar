@@ -61,8 +61,13 @@ scripts the tests run write only to a temporary directory.
   out-of-range shifts before the guarded-mask fix.
 - `space_snapshot_tests` stubs the managed-space and display lists to check
   one copy per space-item update, two-display association, unchanged explicit
-  associations and safe fallback when WindowServer has no answer. The old
-  path fails the call-count assertion with 16 copies.
+  associations, safe fallback when WindowServer has no answer, and reuse of
+  the space snapshot across two bars. The earlier paths fail the call-count
+  assertions.
+- `space_notifications_tests` posts three `SPACE_CHANGED` events without a
+  bar or WindowServer connection, waits for one update, then verifies that a
+  later event and a forced update still run. It fails before the 16 ms burst
+  coalescer.
 - `sanitize` instruments sketchybar and the tests with ASan and UBSan.
 - `thread-sanitize` uses TSan and UBSan instead. Run it separately from ASan.
   Both stop at the first undefined behaviour.

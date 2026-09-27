@@ -8,6 +8,8 @@ extern struct bar_manager g_bar_manager;
 extern int g_connection;
 extern int g_space_management_mode;
 
+static bool g_space_reconcile_pending;
+
 static void event_distributed_notification(void* context) {
   bar_manager_handle_notification(&g_bar_manager, context);
 }
@@ -17,6 +19,17 @@ static void event_application_front_switched(void* context) {
 }
 
 static void event_space_changed(void* context) {
+  if (g_space_reconcile_pending) return;
+  g_space_reconcile_pending = true;
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 16 * NSEC_PER_MSEC),
+                 dispatch_get_main_queue(), ^{
+    g_space_reconcile_pending = false;
+    struct event event = { NULL, SPACE_RECONCILE };
+    event_post(&event);
+  });
+}
+
+static void event_space_reconcile(void* context) {
   bar_manager_handle_space_change(&g_bar_manager, false);
 }
 
@@ -375,6 +388,7 @@ static callback_type* event_handler[] = {
   [SYSTEM_WOKE]                = event_system_woke,
   [SYSTEM_WILL_SLEEP]          = event_system_will_sleep,
   [DISPLAY_RECONCILE]          = event_display_reconcile,
+  [SPACE_RECONCILE]            = event_space_reconcile,
   [SHELL_REFRESH]              = event_shell_refresh,
   [ANIMATOR_REFRESH]           = event_animator_refresh,
   [MACH_MESSAGE]               = event_mach_message,
@@ -384,7 +398,7 @@ static callback_type* event_handler[] = {
 
 
 void event_execute(struct event* event) {
-  if (g_space_management_mode != 1) {
+  if (g_space_management_mode != 1 && event->type != SPACE_CHANGED) {
     bar_manager_poll_active_display(&g_bar_manager);
   }
   event_handler[event->type](event->context);

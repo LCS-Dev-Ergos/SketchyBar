@@ -126,9 +126,9 @@ the phase 6 baseline:
 - an event bus on one serial queue, without `dispatch_sync`, that coalesces
   refreshes and frames;
 - a display and Desktop model: one snapshot per notification, deduplicated
-  notifications, indices not limited to 32; the space-item association now
-  takes one snapshot per update, while the bar loop still copies the space
-  list per display;
+  notifications, indices not limited to 32; the bar and space-item update now
+  share one managed-space snapshot, and same-burst notifications are
+  coalesced, while later duplicate notifications and the 32-bit model remain;
 - rendering at each display's scale, without copying backing stores, on a
   current display link;
 - authentication of message senders;

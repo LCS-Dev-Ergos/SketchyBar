@@ -128,11 +128,13 @@ focused live baseline is in [performance.md](performance.md).
   to copy the managed space list once per item and repeatedly resolve each
   display. With 16 items, the isolated test failed its single-copy assertion
   before the fix and observed one space-list plus one display-list copy
-  afterward. It also
-  checks two displays and missing WindowServer answers. This is a call-count
-  result, not a measured live latency improvement. The bar loop still queries
-  spaces per display, notifications are not deduplicated, and
-  `space_windows_change` reads every Desktop and window twice per switch
+  afterward. It also checks two displays and missing WindowServer answers.
+  This is a call-count result, not a measured live latency improvement. A
+  later change shares that same space-list copy with the bar loop, replacing
+  its per-bar copies, and
+  coalesces `SPACE_CHANGED` notifications arriving within 16 ms. Later
+  duplicates may still run. `space_windows_change` reads every Desktop and
+  window twice per switch
   (`src/app_windows.c:269-285`).
 - **P3 Lua.** Each event sends one message per subscribed item, and each
   `:set` is a separate message with its own parse, refresh and transaction
