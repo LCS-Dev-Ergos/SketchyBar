@@ -218,7 +218,8 @@ static void animator_remove(struct animator* animator, struct animation* animati
 }
 
 void animator_cancel_locked(struct animator* animator, void* target, animator_function* function) {
-  struct animation* remove[animator->animation_count];
+  // At least one entry: an array of length 0 is undefined.
+  struct animation* remove[max(animator->animation_count, 1)];
   memset(remove, 0, animator->animation_count);
   uint32_t remove_count = 0;
 
@@ -239,7 +240,7 @@ void animator_cancel_locked(struct animator* animator, void* target, animator_fu
 bool animator_cancel(struct animator* animator, void* target, animator_function* function) {
   bool needs_update = false;
 
-  struct animation* remove[animator->animation_count];
+  struct animation* remove[max(animator->animation_count, 1)];
   memset(remove, 0, animator->animation_count);
   uint32_t remove_count = 0;
 
@@ -261,7 +262,7 @@ bool animator_cancel(struct animator* animator, void* target, animator_function*
 
 bool animator_update(struct animator* animator, uint64_t time) {
   bool needs_refresh = false;
-  struct animation* remove[animator->animation_count];
+  struct animation* remove[max(animator->animation_count, 1)];
   memset(remove, 0, animator->animation_count);
   uint32_t remove_count = 0;
 

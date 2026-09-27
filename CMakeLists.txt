@@ -128,6 +128,17 @@ set_tests_properties(mach_send_tests PROPERTIES TIMEOUT 20)
 sketchybar_test(script_tests tests/script/script.c ${SRC}/script.c)
 target_compile_definitions(script_tests PRIVATE FORK_TIMEOUT=1)
 
+# The message handlers of the daemon, without bars and hence without windows
+# (tests/message/harness.h).
+function(sketchybar_message_test name source)
+    sketchybar_test(${name} ${source} tests/message/harness.c)
+    set_target_properties(${name} PROPERTIES OSX_ARCHITECTURES "${SKETCHYBAR_ARCHITECTURES}")
+    target_link_options(${name} PRIVATE -F${PRIVATE_FRAMEWORKS})
+    target_link_libraries(${name} PRIVATE sketchybar_objects ${SKETCHYBAR_FRAMEWORKS})
+endfunction()
+
+sketchybar_message_test(message_animation_tests tests/message/animation.c)
+
 # libFuzzer targets for the message protocol, see docs/testing.md. They need a
 # clang that ships libFuzzer, which Apple's does not. Each also runs as a short
 # CTest test, writing new inputs to the build directory.
