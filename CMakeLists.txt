@@ -54,18 +54,24 @@ elseif(NOT SKETCHYBAR_SANITIZE STREQUAL "")
     message(FATAL_ERROR "SKETCHYBAR_SANITIZE must be empty, address or thread")
 endif()
 
-add_executable(sketchybar ${SRC}/sketchybar.c ${SKETCHYBAR_SOURCES})
-set_target_properties(sketchybar PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-    OSX_ARCHITECTURES "${SKETCHYBAR_ARCHITECTURES}"
-    C_STANDARD 99 C_EXTENSIONS OFF
-    OBJC_STANDARD 99 OBJC_EXTENSIONS OFF)
-target_compile_options(sketchybar PRIVATE
-    -Wall -fvisibility=hidden -fno-common
-    $<$<CONFIG:Release>:-O3 -ffast-math>
-    ${SKETCHYBAR_SANITIZE_FLAGS})
+# Everything but main, which the message tests link against as well.
+add_library(sketchybar_objects OBJECT ${SKETCHYBAR_SOURCES})
+add_executable(sketchybar ${SRC}/sketchybar.c)
+
+foreach(target sketchybar_objects sketchybar)
+    set_target_properties(${target} PROPERTIES
+        OSX_ARCHITECTURES "${SKETCHYBAR_ARCHITECTURES}"
+        C_STANDARD 99 C_EXTENSIONS OFF
+        OBJC_STANDARD 99 OBJC_EXTENSIONS OFF)
+    target_compile_options(${target} PRIVATE
+        -Wall -fvisibility=hidden -fno-common
+        $<$<CONFIG:Release>:-O3 -ffast-math>
+        ${SKETCHYBAR_SANITIZE_FLAGS})
+endforeach()
+
+set_target_properties(sketchybar PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 target_link_options(sketchybar PRIVATE -F${PRIVATE_FRAMEWORKS} ${SKETCHYBAR_SANITIZE_FLAGS})
-target_link_libraries(sketchybar PRIVATE ${SKETCHYBAR_FRAMEWORKS})
+target_link_libraries(sketchybar PRIVATE sketchybar_objects ${SKETCHYBAR_FRAMEWORKS})
 
 if(SKETCHYBAR_CODESIGN_IDENTITY)
     add_custom_command(TARGET sketchybar POST_BUILD
@@ -129,7 +135,7 @@ option(SKETCHYBAR_FUZZ "Build the libFuzzer targets and run them as tests" OFF)
 set(SKETCHYBAR_FUZZ_SECONDS 30 CACHE STRING "Seconds each fuzz target runs as a test")
 
 if(SKETCHYBAR_FUZZ)
-    set(SKETCHYBAR_FUZZ_FLAGS -fsanitize=fuzzer,address,undefined -fno-sanitize-recover=undefined)
+    set(SKETCHYBAR_FUZZ_FLAGS -fsanitize=fuzzer,address,undefined)
 
     foreach(target tokens message)
         add_executable(fuzz_${target} tests/fuzz/${target}.c)
