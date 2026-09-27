@@ -1,8 +1,9 @@
 // libFuzzer target for the checks a received Mach message passes before the
 // server reads its descriptor (src/mach_validate.h). The first input byte
 // selects the complex bit, the descriptor count and the descriptor type; the
-// rest is the descriptor, in a buffer of exactly its size. Every accepted
-// message must tokenize without reading past the descriptor.
+// rest is the descriptor. The receiver appends a NUL before parsing a
+// single-terminated descriptor. Every accepted message must tokenize without
+// reading past that normalized buffer.
 #include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -25,8 +26,9 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   message.descriptor.type = types[(data[0] >> 3) & 3];
 
   size_t length = size - 1;
-  char* descriptor = malloc(length ? length : 1);
+  char* descriptor = malloc(length + 1);
   memcpy(descriptor, data + 1, length);
+  descriptor[length] = '\0';
   message.descriptor.address = descriptor;
   message.descriptor.size = length;
 
