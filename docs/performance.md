@@ -82,5 +82,13 @@ while the signed-release samples used spaces 5-7, so the absolute times are
 not a fixed-workload benchmark. The framing defect, the sampled wait, and the
 large improvement with the corrected receiver identify the installed release
 as the cause of the multi-second bar lag; the 16 callbacks amplify it. The
-signed release was restored after the comparison. A new release and Dotfiles
-package update are needed to activate the receiver fix normally.
+signed release was restored after the comparison. `v2.24.0-lcs.2` now contains
+the receiver fix; its tagged CI run built, tested, and signed the archive.
+Dotfiles commit `2634b85` pins that archive, and the complete Darwin build
+passed. The installed service remains on `lcs.1` until the user switches.
+
+The subsequent `dev` fuzz run found that its test target passed an accepted
+single-NUL descriptor directly to `get_token`, whereas the real receiver
+appends the missing NUL first. Commit `5190788` mirrors that normalization in
+the target and adds the empty frame to its corpus. The local fuzz run and all
+four jobs in the branch CI passed; no release binary change was needed.
