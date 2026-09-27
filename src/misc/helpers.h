@@ -449,17 +449,21 @@ static inline int mission_control_index(uint64_t sid) {
   uint64_t result = 0;
   int desktop_cnt = 1;
 
+  // WindowServer answers nothing while it reconfigures displays or wakes.
   CFArrayRef display_spaces_ref = SLSCopyManagedDisplaySpaces(g_connection);
+  if (!display_spaces_ref) return 0;
   int display_spaces_count = CFArrayGetCount(display_spaces_ref);
 
   for (int i = 0; i < display_spaces_count; ++i) {
     CFDictionaryRef display_ref = CFArrayGetValueAtIndex(display_spaces_ref, i);
     CFArrayRef spaces_ref = CFDictionaryGetValue(display_ref, CFSTR("Spaces"));
+    if (!spaces_ref) continue;
     int spaces_count = CFArrayGetCount(spaces_ref);
 
     for (int j = 0; j < spaces_count; ++j) {
       CFDictionaryRef space_ref = CFArrayGetValueAtIndex(spaces_ref, j);
       CFNumberRef sid_ref = CFDictionaryGetValue(space_ref, CFSTR("id64"));
+      if (!sid_ref) continue;
       CFNumberGetValue(sid_ref, CFNumberGetType(sid_ref), &result);
       if (sid == result) goto out;
 
@@ -477,17 +481,21 @@ static inline uint64_t dsid_from_sid(uint32_t sid) {
   uint64_t result = 0;
   int desktop_cnt = 1;
 
+  // WindowServer answers nothing while it reconfigures displays or wakes.
   CFArrayRef display_spaces_ref = SLSCopyManagedDisplaySpaces(g_connection);
+  if (!display_spaces_ref) return 0;
   int display_spaces_count = CFArrayGetCount(display_spaces_ref);
 
   for (int i = 0; i < display_spaces_count; ++i) {
     CFDictionaryRef display_ref = CFArrayGetValueAtIndex(display_spaces_ref, i);
     CFArrayRef spaces_ref = CFDictionaryGetValue(display_ref, CFSTR("Spaces"));
+    if (!spaces_ref) continue;
     int spaces_count = CFArrayGetCount(spaces_ref);
 
     for (int j = 0; j < spaces_count; ++j) {
       CFDictionaryRef space_ref = CFArrayGetValueAtIndex(spaces_ref, j);
       CFNumberRef sid_ref = CFDictionaryGetValue(space_ref, CFSTR("id64"));
+      if (!sid_ref) continue;
       CFNumberGetValue(sid_ref, CFNumberGetType(sid_ref), &result);
       if (sid == desktop_cnt) goto out;
 
@@ -506,6 +514,7 @@ static inline CGImageRef space_capture(uint32_t sid) {
   CGImageRef image = NULL;
   if (dsid) {
     CFArrayRef result = SLSHWCaptureSpace(g_connection, dsid, 0);
+    if (!result) return NULL;
     uint32_t count = CFArrayGetCount(result);
     if (count > 0) {
       image = (CGImageRef)CFRetain(CFArrayGetValueAtIndex(result, 0));

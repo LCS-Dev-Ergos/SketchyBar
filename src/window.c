@@ -59,7 +59,8 @@ void window_open(struct window* window, CGRect frame) {
   window->frame.size = frame.size;
   frame.origin = CGPointZero;
 
-  uint32_t id;
+  // Stays 0 when WindowServer refuses the window.
+  uint32_t id = 0;
   CFTypeRef frame_region = window_create_region(window, frame);
   CFTypeRef empty_region = CGRegionCreateEmptyRegion();
   SLSNewWindowWithOpaqueShapeAndContext(g_connection,

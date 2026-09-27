@@ -182,6 +182,7 @@ uint32_t display_active_display_id(void) {
 CFStringRef display_arrangement_display_uuid(int arrangement) {
   CFStringRef result = NULL;
   CFArrayRef displays = SLSCopyManagedDisplays(g_connection);
+  if (!displays) return result;
 
   int displays_count = CFArrayGetCount(displays);
   for (int i = 0; i < displays_count; ++i) {
@@ -197,6 +198,7 @@ CFStringRef display_arrangement_display_uuid(int arrangement) {
 uint32_t display_arrangement_display_id(int arrangement) {
   uint32_t result = 0;
   CFArrayRef displays = SLSCopyManagedDisplays(g_connection);
+  if (!displays) return result;
 
   int displays_count = CFArrayGetCount(displays);
   for (int i = 0; i < displays_count; ++i) {
@@ -268,15 +270,21 @@ CGRect display_menu_bar_rect(uint32_t did) {
 }
 
 uint32_t display_active_display_count(void) {
-  uint32_t count;
-  CGGetActiveDisplayList(0, NULL, &count);
+  uint32_t count = 0;
+  if (CGGetActiveDisplayList(0, NULL, &count) != kCGErrorSuccess) return 0;
   return count;
 }
 
 uint32_t *display_active_display_list(uint32_t *count) {
-  int display_count = display_active_display_count();
+  *count = 0;
+  uint32_t display_count = display_active_display_count();
+  if (!display_count) return NULL;
+
   uint32_t *result = malloc(sizeof(uint32_t) * display_count);
-  CGGetActiveDisplayList(display_count, result, count);
+  if (CGGetActiveDisplayList(display_count, result, count) != kCGErrorSuccess
+      || *count > display_count) {
+    *count = 0;
+  }
   return result;
 }
 
