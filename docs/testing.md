@@ -40,8 +40,8 @@ scripts the tests run write only to a temporary directory.
   desktop, normal window and menu bar levels for every `topmost` setting.
 - `mach_server_tests` sends client, native-provider, inline, unterminated and
   descriptorless messages to the receive callback of `src/mach.c` on a private
-  port. The native-provider case checks that one trailing NUL gains an empty
-  token before parsing.
+  port. The native-provider and empty SbarLua transaction cases check that
+  one trailing NUL gains an empty token before parsing.
 - `mach_send_tests` sends events to a full queue, which must time out and
   release the rights of the undelivered messages.
 - `script_tests` runs scripts through `src/script.c`: the environment, spaced

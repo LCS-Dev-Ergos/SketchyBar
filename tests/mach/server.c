@@ -119,6 +119,15 @@ int main(void) {
   assert(handled == 3 && strcmp(command, "--trigger") == 0);
   assert(received_size == sizeof(provider) + 1 && has_empty_token);
 
+  // SbarLua commits callbacks even when they made no changes. That empty
+  // transaction is one NUL; dropping it makes Lua wait for a reply timeout
+  // for every unchanged space item.
+  static char empty_transaction[] = { '\0' };
+  mach_send_message(port, empty_transaction, sizeof(empty_transaction), false);
+  run_until_handled(4);
+  assert(handled == 4 && command[0] == '\0');
+  assert(received_size == 2 && has_empty_token);
+
   CFRelease(source);
   CFRelease(cf_port);
   printf("mach server: passed\n");

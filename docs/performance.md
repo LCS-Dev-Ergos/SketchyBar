@@ -52,3 +52,35 @@ their widgets stayed at their placeholder values. The receiver now appends
 the missing empty token before parsing legacy messages; the Dotfiles
 formatter also sends two NULs. A corrected one-shot CPU event changed the
 live label from `cpu ??%` to `cpu 42%`.
+
+## Space selection after the Dotfiles switch
+
+After the user activated the corrected helpers, `v2.24.0-lcs.1` still showed
+space selection several seconds late. In an isolated switch and return, yabai
+reported the target in 0.34 and 0.28 s while the bar's highlight took 3.19
+and 6.51 s. Another switch and return took 0.31 and 0.50 s in yabai, versus
+3.41 and 5.59 s in the bar. Bar queries generally continued to reply within
+0.1-0.2 s. A separate event item confirmed that `space_change` delivery was
+also late. These timings measure query state, not the visible end of macOS's
+Desktop animation.
+
+The active release's validator requires two terminal NULs and silently drops
+other frames. The pinned SbarLua creates a transaction for every callback,
+including callbacks that make no changes. An empty transaction sends exactly
+one NUL and waits up to 1 s for a reply that the daemon never sends. All 16
+personal space items subscribe to `space_change`; only the items changing
+selection need an update, so a switch creates many empty transactions. In a
+15-second sample covering a switch and return, SbarLua's main thread spent
+10,393 samples waiting in a callback's Mach send/response path and another
+2,649 in a delayed callback's path. SketchyBar's main thread was mostly idle.
+
+The current `dev` receiver accepts a one-NUL frame and appends the missing
+empty token before parsing. Run as a temporary LaunchAgent with the same
+immutable personal config, the local `dev` binary updated the highlight in
+0.54 and 0.23 s during a switch and return. That A/B used spaces 1 and 2,
+while the signed-release samples used spaces 5-7, so the absolute times are
+not a fixed-workload benchmark. The framing defect, the sampled wait, and the
+large improvement with the corrected receiver identify the installed release
+as the cause of the multi-second bar lag; the 16 callbacks amplify it. The
+signed release was restored after the comparison. A new release and Dotfiles
+package update are needed to activate the receiver fix normally.
