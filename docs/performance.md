@@ -92,3 +92,13 @@ single-NUL descriptor directly to `get_token`, whereas the real receiver
 appends the missing NUL first. Commit `5190788` mirrors that normalization in
 the target and adds the empty frame to its corpus. The local fuzz run and all
 four jobs in the branch CI passed; no release binary change was needed.
+
+## After activating lcs.2
+
+On 2026-09-27 the user reported that the visible space-selection delay was
+resolved after switching to `lcs.2`. A read-only check found the signed
+`lcs.2` Nix binary in the running Home Manager LaunchAgent, with bar and
+display queries responding. The `Item not found` entries in the service log
+precede the current process; its subsequent entries report display refreshes
+without new item errors. No controlled post-switch latency, steady-state CPU,
+lock/unlock or sleep/wake baseline has been recorded yet.
