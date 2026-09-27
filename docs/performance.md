@@ -100,5 +100,37 @@ resolved after switching to `lcs.2`. A read-only check found the signed
 `lcs.2` Nix binary in the running Home Manager LaunchAgent, with bar and
 display queries responding. The `Item not found` entries in the service log
 precede the current process; its subsequent entries report display refreshes
-without new item errors. No controlled post-switch latency, steady-state CPU,
-lock/unlock or sleep/wake baseline has been recorded yet.
+without new item errors. That initial check did not establish a controlled
+post-switch baseline; the focused checks follow.
+
+## Phase 6 live checks on lcs.2
+
+The Home Manager LaunchAgent kept the signed `lcs.2` process running through
+these checks. Bar and display queries answered with 126 items and two displays.
+
+- Steady use, 16:12:44-16:13:53 CEST: 60 one-second `top` samples after its
+  initial sample, with space 5 focused at both ends and no new service-log
+  entries. SketchyBar CPU averaged 0.59% (median 0.55%, maximum 1.9%);
+  WindowServer averaged 37.08% (median 36.9%, maximum 44.6%). This host had
+  other active load, so WindowServer CPU cannot be attributed to the bar.
+- Three 5-to-6-to-5 round trips on one display, starting the timer before
+  each `yabai space --focus` command: yabai reported focus in 0.115-0.301 s
+  (median 0.196 s), and `sketchybar --query item` reported the target's icon
+  highlighted in 0.211-0.551 s (median 0.316 s). The six bar-minus-yabai
+  gaps were 0.056-0.250 s. Queries ran sequentially after the focus command,
+  so these are polling bounds, not visual animation-completion times. The
+  script restored space 5; the service log stayed at 379 lines.
+- User-performed lock and unlock: the same daemon PID remained, queries found
+  126 items and two displays, and the only new service-log entry was
+  `displays unchanged, refreshed (2 active) in 443 ms`.
+- User-performed sleep request and wake with two external displays: the two
+  display UUIDs and frames matched before and after, the daemon PID remained,
+  and the bar still had 126 items. The service logged two unchanged-layout
+  refreshes, in 241 and 428 ms, with no rebuild. `pmset -g log` recorded
+  `Display is turned off` at 16:19:27 and on at 16:19:58, but no full system
+  `Sleep`/`Wake` transition. Its sleep-notification record included a 30 s
+  `AntelopeAudioSer` timeout. This verifies display recovery, not a full
+  system-sleep recovery; the timeout's effect on sleep is unresolved.
+- After the user clicked an application and an empty bar area,
+  `window_order` found 58 visible item windows and zero covered by the bar
+  background (exit 0).

@@ -15,7 +15,7 @@ checks and exit criterion. Findings are referenced by their ids in the
 | 3. VS Code workspace | Done on `dev` |
 | 4. CI and releases | Done: signed `v2.24.0-lcs.2` is active through Dotfiles |
 | 5. Targeted hardening | Done, except the items listed in its section |
-| 6. Live baseline | In progress: space lag resolved; controlled measurements remain |
+| 6. Live baseline | In progress: Desktop, CPU, unlock and display wake checked; full system sleep unverified |
 | 7. Restructuring | Not started |
 | 8. Repository maintenance | Planned after safety, robustness and performance work |
 
@@ -112,8 +112,9 @@ separate changes after those behavior changes are stable.
   yabai; wake with both displays; lock and unlock.
 - Risks: changes the screen in use; agree each run with the user.
 - Progress: the user confirmed that `lcs.2` removed the visible space lag.
-  The active signed service and bar/display queries were checked; this is not
-  a controlled latency or steady-state CPU baseline.
+  Six controlled Desktop switches, a one-minute CPU sample, lock/unlock,
+  display power recovery and window ordering are recorded. The sleep request
+  produced no system `Sleep`/`Wake` event, so full sleep recovery remains open.
 - Exit: measurements recorded in `docs/performance.md`.
 
 ## 7. Restructuring
