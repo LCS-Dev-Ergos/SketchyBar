@@ -32,10 +32,25 @@ tags to the fork before fetching it.
 
 Fork releases are annotated tags named `v<upstream version>-lcs.<n>` on `dev`,
 for example `v2.24.0-lcs.1`, counting from 1 again after each upstream
-release. The release workflow, which builds and signs tagged releases, and
-the `~/Dotfiles` package file with its update script are phase 4 of the
-[plan](plan.md); until then Dotfiles builds upstream 2.24.0 with its own
-patches.
+release. Pushing the tag runs `.github/workflows/ci.yml`, which builds the
+universal binary, signs it with the self-signed `sketchybar-lcs-dev`
+certificate, runs the tests and publishes `sketchybar-<tag>.tar.gz`
+(`archive/bin/sketchybar`, `archive/LICENSE.md`). The release notes give its
+SHA-256, its Nix hash and the designated requirement of the binary.
+
+```sh
+git tag -a v2.24.0-lcs.2 -m "<One-sentence summary of the changes.>"
+git push origin v2.24.0-lcs.2
+```
+
+The certificate and its password are the repository secrets
+`SKETCHYBAR_SIGNING_P12` (base64) and `SKETCHYBAR_SIGNING_P12_PASSWORD`. It is
+valid until 2036 and separate from the yabai fork's certificate.
+
+`~/Dotfiles` installs the release from
+`home/desktop/sketchybar/package.nix`. `scripts/update-sketchybar.sh --check`
+reports a newer release and `--apply` rewrites the version and hash; the
+user builds and switches.
 
 ## Documents
 
