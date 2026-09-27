@@ -33,7 +33,8 @@ running bar.
   queue against counting stubs of the bar manager and simulated displays:
   coalesced bursts, the quiet period, the wake settle period, the lock screen,
   unlock and sleep. The build shortens the quiet period to 50 ms and the
-  settle period to 300 ms.
+  settle period to 1 s. The checks wait for each reconciliation instead of
+  fixed times, so a slow runner passes them.
 - `bar_level_tests` checks the bar background level against the item,
   desktop, normal window and menu bar levels for every `topmost` setting.
 - `sanitize` instruments sketchybar and the tests with ASan and UBSan.
@@ -47,6 +48,27 @@ ctest --preset sanitize
 
 Passing these tests does not verify live display, wake or window ordering
 behaviour.
+
+## Static analyzer
+
+`tools/analyze.sh` runs the clang static analyzer over every translation unit
+and fails when a finding is new or more frequent than in
+`tools/analyzer-baseline.txt`, which records the findings of upstream 2.24.0
+by file, message and checker. After fixing a finding, lower the baseline with
+`tools/analyze.sh --update-baseline`. The findings depend on the analyzer:
+the baseline uses Apple clang, as CI does. Newer LLVM releases find more, such
+as the uninitialised `memcpy` sources in the [audit](audit.md):
+`CLANG=/path/to/clang tools/analyze.sh` reports them as new findings, and
+the baseline stays with Apple clang.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every push and pull request to `dev`: the
+universal release build with CTest and the upstream makefile build, the
+`sanitize` and `thread-sanitize` presets, 60 seconds of each fuzz target with
+Homebrew LLVM, and the analyzer. Fuzz failure inputs are uploaded as an
+artifact. Tags build, sign and publish the release described in
+[fork.md](fork.md).
 
 ## Fuzzing
 
