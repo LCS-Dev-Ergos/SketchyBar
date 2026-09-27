@@ -1,0 +1,170 @@
+# Builds and tests every push and pull request to dev, once more under ASan
+# and UBSan and under TSan, runs the static analyzer against its baseline and
+# fuzzes the message tokenizer. Tags named v<version>-lcs.<n> additionally
+# produce a signed release tarball (archive/bin, archive/LICENSE.md).
+
+name: CI
+
+on:
+  push:
+    branches: [dev]
+    tags: ["v*-lcs.*"]
+  pull_request:
+    branches: [dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SIGNING_IDENTITY: sketchybar-lcs-dev
+
+jobs:
+  build:
+    runs-on: macos-26
+    permissions:
+      contents: write
+    env:
+      RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Import the signing certificate
+        if: env.RELEASE == 'true'
+        env:
+          P12: ${{ secrets.SKETCHYBAR_SIGNING_P12 }}
+          P12_PASSWORD: ${{ secrets.SKETCHYBAR_SIGNING_P12_PASSWORD }}
+        run: |
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          keychain_password=$(openssl rand -hex 16)
+          echo "$P12" | base64 --decode > "$RUNNER_TEMP/signing.p12"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 3600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          security import "$RUNNER_TEMP/signing.p12" -k "$keychain" -P "$P12_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$keychain_password" "$keychain" > /dev/null
+          existing=()
+          while IFS= read -r line; do existing+=("$(echo "$line" | tr -d '" ')"); done < <(security list-keychains -d user)
+          security list-keychains -d user -s "$keychain" "${existing[@]}"
+          rm "$RUNNER_TEMP/signing.p12"
+
+      - name: Build
+        run: |
+          identity=""
+          if [ "$RELEASE" = "true" ]; then identity="$SIGNING_IDENTITY"; fi
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSKETCHYBAR_LINK_COMPILE_COMMANDS=OFF \
+            -DSKETCHYBAR_CODESIGN_IDENTITY="$identity"
+          cmake --build build --parallel
+
+      - name: Verify
+        run: |
+          build/bin/sketchybar --version
+          test "$(lipo -archs build/bin/sketchybar)" = "x86_64 arm64"
+          if [ "$RELEASE" = "true" ]; then
+            codesign --verify --strict build/bin/sketchybar
+            codesign -dvv build/bin/sketchybar 2>&1 | grep -qx "Authority=$SIGNING_IDENTITY"
+          fi
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Build with the upstream makefile
+        run: |
+          make
+          test "$(lipo -archs bin/sketchybar)" = "x86_64 arm64"
+
+      - name: Package and publish the release
+        if: env.RELEASE == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          mkdir -p archive/bin
+          cp build/bin/sketchybar archive/bin/
+          cp LICENSE.md archive/
+          tarball="sketchybar-$TAG.tar.gz"
+          COPYFILE_DISABLE=1 tar -czf "$tarball" archive
+          sha256=$(shasum -a 256 "$tarball" | cut -d ' ' -f 1)
+          sri="sha256-$(openssl dgst -sha256 -binary "$tarball" | base64)"
+          requirement=$(codesign -d -r- build/bin/sketchybar 2>&1 | sed -n 's/^designated => //p')
+          tick='`'
+          cat > notes.md <<EOF
+          Signed with ${tick}${SIGNING_IDENTITY}${tick}.
+
+          - sha256: ${tick}${sha256}${tick}
+          - Nix hash: ${tick}${sri}${tick}
+          - designated requirement: ${tick}${requirement}${tick}
+          EOF
+          gh release create "$TAG" "$tarball" --verify-tag --title "$TAG" --notes-file notes.md
+
+      - name: Remove the signing keychain
+        if: always() && env.RELEASE == 'true'
+        run: security delete-keychain "$RUNNER_TEMP/signing.keychain-db" || true
+
+  sanitize:
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build with ASan and UBSan
+        run: |
+          cmake --preset sanitize -G "Unix Makefiles" -DSKETCHYBAR_LINK_COMPILE_COMMANDS=OFF
+          cmake --build --preset sanitize --parallel
+
+      - name: Test
+        run: ctest --preset sanitize
+
+      - name: Build and test with TSan and UBSan
+        run: |
+          cmake --preset thread-sanitize -G "Unix Makefiles" -DSKETCHYBAR_LINK_COMPILE_COMMANDS=OFF
+          cmake --build --preset thread-sanitize --parallel
+          ctest --preset thread-sanitize
+
+  fuzz:
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+    runs-on: macos-26
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Select LLVM with libFuzzer
+        run: |
+          brew install llvm
+          clang="$(brew --prefix llvm)/bin/clang"
+          "$clang" --version
+          echo "CC=$clang" >> "$GITHUB_ENV"
+          echo "OBJC=$clang" >> "$GITHUB_ENV"
+
+      - name: Build fuzz targets
+        run: |
+          cmake --preset fuzz -G "Unix Makefiles" -DSKETCHYBAR_FUZZ_SECONDS=60 \
+            -DCMAKE_OSX_SYSROOT="$(xcrun --sdk macosx --show-sdk-path)"
+          cmake --build --preset fuzz --parallel
+
+      - name: Fuzz the message tokenizer
+        run: ctest --preset fuzz --verbose --timeout 120
+
+      - name: Upload failure inputs and test log
+        if: failure()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: fuzz-failures
+          path: |
+            build/fuzz/fuzz/crash-*
+            build/fuzz/fuzz/leak-*
+            build/fuzz/fuzz/timeout-*
+            build/fuzz/fuzz/oom-*
+            build/fuzz/Testing/Temporary/LastTest.log
+          if-no-files-found: ignore
+
+  analyze:
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Run the clang static analyzer
+        run: |
+          /usr/bin/clang --version
+          tools/analyze.sh
