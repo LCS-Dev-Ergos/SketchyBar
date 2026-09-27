@@ -8,7 +8,7 @@ checks and exit criterion. Findings are referenced by their ids in the
 ## Status
 
 | Phase | State |
-|---|---|
+| --- | --- |
 | 0. Fork and synchronization | Done, except the Actions setting that lets the sync workflow open pull requests |
 | 1. Dotfiles patches as commits | Done on `dev` |
 | 2. CMake and presets | Done on `dev` |

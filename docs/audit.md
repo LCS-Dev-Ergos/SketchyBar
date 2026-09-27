@@ -160,7 +160,7 @@ Estimated from code; no live measurement yet.
 ## Upstream issues and pull requests
 
 | Problem | Issues | Pull requests |
-|---|---|---|
+| --- | --- | --- |
 | Hang or crash on wake with external displays | #776, #691, #783 | #847 (draft, similar to `fix(display)`) |
 | IPC deadlock with Lua callbacks | #794 | #841 (100 ms), #838 (5 s) |
 | Click raises the bar over its items on macOS 27 | #850 | #851, #855 (reorder after the click) |
