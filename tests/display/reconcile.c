@@ -3,11 +3,10 @@
 // display layouts. The build shortens the quiet and settle periods.
 //
 // The checks wait for events instead of fixed times, so that a slow or
-// sanitized runner does not fail them, and a scenario that depends on two
-// requests falling within one quiet period is repeated when the runner
-// stalls between them.
+// sanitized runner, whose timers macOS may delay, does not fail them.
 #include <assert.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include "bar_manager.h"
 #include "event.h"
@@ -106,22 +105,17 @@ int main(void) {
   assert(posts == 1 && refreshes == 1 && rebuilds == 0);
   assert(g_bar.window.needs_move);
 
-  // Every request postpones the reconciliation by the whole quiet period.
-  for (int attempt = 0; ; attempt++) {
-    assert(attempt < 5);
-    reset();
-    uint64_t first = now();
-    display_reconcile_request();
-    run(0.02);
-    uint64_t second = now();
-    display_reconcile_request();
-    run_until(^{ return posts > 0; });
-    if (second - first >= DISPLAY_RECONCILE_QUIET_NS) continue;
-
-    assert(posts == 1 && refreshes == 1);
-    assert(last_post - second >= DISPLAY_RECONCILE_QUIET_NS - NSEC_PER_MSEC);
-    break;
-  }
+  // Every request postpones the reconciliation by the whole quiet period. The
+  // main queue does not run between the requests, so the first one cannot
+  // reconcile before the second arrives, however long the runner sleeps.
+  reset();
+  display_reconcile_request();
+  usleep(20000);
+  uint64_t second = now();
+  display_reconcile_request();
+  run_until(^{ return posts > 0; });
+  assert(posts == 1 && refreshes == 1);
+  assert(last_post - second >= DISPLAY_RECONCILE_QUIET_NS - NSEC_PER_MSEC);
 
   // A changed layout outside the settle period is rebuilt once.
   reset();

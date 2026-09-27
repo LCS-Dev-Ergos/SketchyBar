@@ -104,11 +104,11 @@ sketchybar_test(display_layout_tests tests/display/layout.c)
 target_link_libraries(display_layout_tests PRIVATE "-framework CoreGraphics")
 
 # The reconciliation runs against stubs of the bar manager and simulated
-# displays, with a 50 ms quiet period and a 1 s settle period.
+# displays, with a 50 ms quiet period and a 2 s settle period.
 sketchybar_test(display_reconcile_tests tests/display/reconcile.c ${SRC}/display_reconcile.c)
 target_compile_definitions(display_reconcile_tests PRIVATE
     "DISPLAY_RECONCILE_QUIET_NS=(50 * NSEC_PER_MSEC)"
-    "DISPLAY_WAKE_SETTLE_NS=(1 * NSEC_PER_SEC)")
+    "DISPLAY_WAKE_SETTLE_NS=(2 * NSEC_PER_SEC)")
 target_link_libraries(display_reconcile_tests PRIVATE "-framework CoreFoundation" "-framework CoreGraphics")
 
 sketchybar_test(bar_level_tests tests/bar/level.c)

@@ -33,7 +33,7 @@ running bar.
   queue against counting stubs of the bar manager and simulated displays:
   coalesced bursts, the quiet period, the wake settle period, the lock screen,
   unlock and sleep. The build shortens the quiet period to 50 ms and the
-  settle period to 1 s. The checks wait for each reconciliation instead of
+  settle period to 2 s. The checks wait for each reconciliation instead of
   fixed times, so a slow runner passes them.
 - `bar_level_tests` checks the bar background level against the item,
   desktop, normal window and menu bar levels for every `topmost` setting.
