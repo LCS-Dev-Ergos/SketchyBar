@@ -47,9 +47,9 @@ set(SKETCHYBAR_FRAMEWORKS
     "-framework MediaRemote")
 
 if(SKETCHYBAR_SANITIZE STREQUAL "address")
-    set(SKETCHYBAR_SANITIZE_FLAGS -fsanitize=address,undefined -fno-omit-frame-pointer)
+    set(SKETCHYBAR_SANITIZE_FLAGS -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer)
 elseif(SKETCHYBAR_SANITIZE STREQUAL "thread")
-    set(SKETCHYBAR_SANITIZE_FLAGS -fsanitize=thread,undefined -fno-omit-frame-pointer)
+    set(SKETCHYBAR_SANITIZE_FLAGS -fsanitize=thread,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer)
 elseif(NOT SKETCHYBAR_SANITIZE STREQUAL "")
     message(FATAL_ERROR "SKETCHYBAR_SANITIZE must be empty, address or thread")
 endif()
@@ -135,7 +135,7 @@ option(SKETCHYBAR_FUZZ "Build the libFuzzer targets and run them as tests" OFF)
 set(SKETCHYBAR_FUZZ_SECONDS 30 CACHE STRING "Seconds each fuzz target runs as a test")
 
 if(SKETCHYBAR_FUZZ)
-    set(SKETCHYBAR_FUZZ_FLAGS -fsanitize=fuzzer,address,undefined)
+    set(SKETCHYBAR_FUZZ_FLAGS -fsanitize=fuzzer,address,undefined -fno-sanitize-recover=undefined)
 
     foreach(target tokens message)
         add_executable(fuzz_${target} tests/fuzz/${target}.c)
