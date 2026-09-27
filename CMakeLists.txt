@@ -36,7 +36,8 @@ set(SKETCHYBAR_SOURCES
     mouse.c shadow.c font.c text.c message.c bar.c color.c window.c
     bar_manager.c display.c display_nsscreen.m group.c mach.c popup.c
     animation.c workspace.m volume.c slider.c power.c wifi.m media.m
-    hotload.c app_windows.c layer.m surface.c context.c)
+    hotload.c app_windows.c layer.m surface.c context.c
+    display_layout.c display_reconcile.c)
 list(TRANSFORM SKETCHYBAR_SOURCES PREPEND ${SRC}/)
 
 set(SKETCHYBAR_FRAMEWORKS
@@ -79,6 +80,30 @@ enable_testing()
 # The client prints the version before it contacts a daemon or the window server.
 add_test(NAME version COMMAND sketchybar --version)
 set_tests_properties(version PROPERTIES PASS_REGULAR_EXPRESSION "^sketchybar-v[0-9]+\\.[0-9]+\\.[0-9]+")
+
+# Adds a test executable built from the given sources, with the sources
+# directory on the include path and the sanitizers of the build.
+function(sketchybar_test name)
+    add_executable(${name} ${ARGN})
+    set_target_properties(${name} PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
+        C_STANDARD 99 C_EXTENSIONS OFF)
+    target_include_directories(${name} PRIVATE ${SRC})
+    target_compile_options(${name} PRIVATE -UNDEBUG ${SKETCHYBAR_SANITIZE_FLAGS})
+    target_link_options(${name} PRIVATE ${SKETCHYBAR_SANITIZE_FLAGS})
+    add_test(NAME ${name} COMMAND ${name})
+endfunction()
+
+sketchybar_test(display_layout_tests tests/display/layout.c)
+target_link_libraries(display_layout_tests PRIVATE "-framework CoreGraphics")
+
+# The reconciliation runs against stubs of the bar manager and simulated
+# displays, with a 50 ms quiet period and a 300 ms settle period.
+sketchybar_test(display_reconcile_tests tests/display/reconcile.c ${SRC}/display_reconcile.c)
+target_compile_definitions(display_reconcile_tests PRIVATE
+    "DISPLAY_RECONCILE_QUIET_NS=(50 * NSEC_PER_MSEC)"
+    "DISPLAY_WAKE_SETTLE_NS=(300 * NSEC_PER_MSEC)")
+target_link_libraries(display_reconcile_tests PRIVATE "-framework CoreFoundation" "-framework CoreGraphics")
 
 # libFuzzer targets for the message protocol, see docs/testing.md. They need a
 # clang that ships libFuzzer, which Apple's does not. Each also runs as a short

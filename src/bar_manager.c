@@ -10,6 +10,7 @@
 #include "mouse.h"
 #include "media.h"
 #include "app_windows.h"
+#include "display_reconcile.h"
 
 extern void forced_front_app_event();
 
@@ -620,6 +621,7 @@ void bar_manager_begin(struct bar_manager* bar_manager) {
     }
   }
 
+  display_reconcile_remember();
   bar_manager->active_displays = 0;
   for (int i = 0; i < bar_manager->bar_count; i++) {
     bar_manager->active_displays |= 1 << bar_manager->bars[i]->adid;
@@ -752,19 +754,19 @@ void bar_manager_custom_events_trigger(struct bar_manager* bar_manager, char* na
 }
 
 void bar_manager_display_resized(struct bar_manager* bar_manager, uint32_t did) {
-  bar_manager_display_changed(bar_manager);
+  display_reconcile_request();
 }
 
 void bar_manager_display_moved(struct bar_manager* bar_manager, uint32_t did) {
-  bar_manager_display_changed(bar_manager);
+  display_reconcile_request();
 }
 
 void bar_manager_display_removed(struct bar_manager* bar_manager, uint32_t did) {
-  bar_manager_display_changed(bar_manager);
+  display_reconcile_request();
 }
 
 void bar_manager_display_added(struct bar_manager* bar_manager, uint32_t did) {
-  bar_manager_display_changed(bar_manager);
+  display_reconcile_request();
 }
 
 void bar_manager_display_changed(struct bar_manager* bar_manager) {
@@ -1022,21 +1024,7 @@ void bar_manager_handle_system_will_sleep(struct bar_manager* bar_manager) {
 }
 
 void bar_manager_handle_system_woke(struct bar_manager* bar_manager) {
-  if (bar_manager->sleeps) {
-    bar_manager->sleeps = false;
-
-    // Sometimes the system wake notification precedes the display layout
-    // changes, so we queue a second wake event slightly later.
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
-      usleep(500000);
-      dispatch_async(dispatch_get_main_queue(), ^{
-        struct event event = { NULL, SYSTEM_WOKE };
-        event_post(&event);
-      });
-    });
-  }
-
-  bar_manager_display_changed(bar_manager);
+  display_reconcile_wake(bar_manager);
   bar_manager_custom_events_trigger(bar_manager,
                                     COMMAND_SUBSCRIBE_SYSTEM_WOKE,
                                     NULL                          );

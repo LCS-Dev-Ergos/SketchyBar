@@ -2,6 +2,7 @@
 #include "bar_manager.h"
 #include "custom_events.h"
 #include "hotload.h"
+#include "display_reconcile.h"
 
 extern struct bar_manager g_bar_manager;
 extern int g_connection;
@@ -50,7 +51,13 @@ static void event_menu_bar_hidden_changed(void* context) {
 }
 
 static void event_system_woke(void* context) {
-  bar_manager_handle_system_woke(&g_bar_manager);
+  // Screen unlock is not a display topology change (see workspace.m).
+  if (context) display_reconcile_unlock(&g_bar_manager);
+  else bar_manager_handle_system_woke(&g_bar_manager);
+}
+
+static void event_display_reconcile(void* context) {
+  display_reconcile_run(&g_bar_manager, false);
 }
 
 static void event_system_will_sleep(void* context) {
@@ -367,6 +374,7 @@ static callback_type* event_handler[] = {
   [MENU_BAR_HIDDEN_CHANGED]    = event_menu_bar_hidden_changed,
   [SYSTEM_WOKE]                = event_system_woke,
   [SYSTEM_WILL_SLEEP]          = event_system_will_sleep,
+  [DISPLAY_RECONCILE]          = event_display_reconcile,
   [SHELL_REFRESH]              = event_shell_refresh,
   [ANIMATOR_REFRESH]           = event_animator_refresh,
   [MACH_MESSAGE]               = event_mach_message,

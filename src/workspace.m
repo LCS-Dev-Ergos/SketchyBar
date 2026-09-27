@@ -190,7 +190,9 @@ CGImageRef workspace_icon_for_app(char* app) {
 }
 
 - (void)didWake:(NSNotification *)notification {
-    struct event event = { NULL, SYSTEM_WOKE };
+    // Screen unlock is not a display topology change.
+    bool unlocked = [notification.name isEqualToString:@"com.apple.screenIsUnlocked"];
+    struct event event = { (void*)(intptr_t)unlocked, SYSTEM_WOKE };
     event_post(&event);
 }
 
