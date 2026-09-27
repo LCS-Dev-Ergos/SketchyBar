@@ -5,19 +5,20 @@
 #include "misc/helpers.h"
 #include "window.h"
 #include "bar_level.h"
+#include "mask.h"
 
 bool bar_draws_item(struct bar* bar, struct bar_item* bar_item) {
     if (!bar_item->drawing || !bar->shown || bar->hidden) return false;
 
     if (((bar_item->associated_display > 0
-          && (!(bar_item->associated_display & (1 << bar->adid))))
+          && (!(bar_item->associated_display & mask_bit(bar->adid))))
         || (bar_item->associated_to_active_display
             && (bar->adid != g_bar_manager.active_adid)))
         && !bar_item->ignore_association)
       return false;
 
     if (bar_item->associated_space > 0
-        && (!(bar_item->associated_space & (1 << bar->sid))
+        && (!(bar_item->associated_space & mask_bit(bar->sid))
             && !bar_item->ignore_association)
         && (bar_item->type != BAR_COMPONENT_SPACE)        )
       return false;

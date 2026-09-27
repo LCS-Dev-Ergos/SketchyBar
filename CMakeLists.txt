@@ -142,6 +142,7 @@ sketchybar_message_test(message_input_tests tests/message/inputs.c)
 sketchybar_message_test(message_windowserver_tests tests/message/windowserver.c)
 sketchybar_message_test(message_memory_tests tests/message/memory.c)
 sketchybar_message_test(message_removal_tests tests/message/removal.c)
+sketchybar_message_test(mask_bounds_tests tests/message/mask_bounds.c)
 
 # libFuzzer targets for the message protocol, see docs/testing.md. They need a
 # clang that ships libFuzzer, which Apple's does not. Each also runs as a short

@@ -12,6 +12,7 @@
 #include "app_windows.h"
 #include "display_reconcile.h"
 #include "bar_level.h"
+#include "mask.h"
 
 extern void forced_front_app_event();
 
@@ -352,7 +353,7 @@ uint32_t bar_manager_length_for_bar_side(struct bar_manager* bar_manager, struct
 bool bar_manager_bar_needs_redraw(struct bar_manager* bar_manager, struct bar* bar) {
   if (bar_manager->bar_needs_update) return true;
 
-  uint32_t bar_mask = 1 << bar->adid;
+  uint32_t bar_mask = mask_bit(bar->adid);
   for (int i = 0; i < bar_manager->bar_item_count; i++) {
     struct bar_item* bar_item = bar_manager->bar_items[i];
     bool draws_item = bar_draws_item(bar, bar_item);
@@ -397,7 +398,7 @@ bool bar_manager_bar_needs_redraw(struct bar_manager* bar_manager, struct bar* b
 
     bool drawn_on_non_associated_space = bar_item->associated_space > 0
                                          && !(bar_item->associated_space
-                                              & (1 << bar->sid))
+                                              & mask_bit(bar->sid))
                                          && ((bar_item->associated_bar << 1)
                                              & bar_mask);
 
@@ -406,7 +407,7 @@ bool bar_manager_bar_needs_redraw(struct bar_manager* bar_manager, struct bar* b
     bool not_drawn_on_associated_space = draws_item
                                          && bar_item->associated_space > 0
                                          && (bar_item->associated_space
-                                             & (1 << bar->sid))
+                                             & mask_bit(bar->sid))
                                          && !((bar_item->associated_bar << 1)
                                               & bar_mask);
 
@@ -494,21 +495,21 @@ void bar_manager_update_space_components(struct bar_manager* bar_manager, bool f
       uint32_t space = get_set_bit_position(bar_item->associated_space);
       uint32_t space_did = display_id_for_space(space);
       if (space_did) {
-        bar_item->associated_display = 1 << (display_arrangement(space_did));
+        bar_item->associated_display = mask_bit(display_arrangement(space_did));
       }
       else {
-        bar_item->associated_display = 1 << 30;
+        bar_item->associated_display = mask_bit(30);
       }
     }
     for (int j = 0; j < bar_manager->bar_count; j++) {
       struct bar* bar = bar_manager->bars[j];
       uint32_t did = bar->adid;
 
-      if ((1 << did) & bar_item->associated_display) {
+      if (mask_bit(did) & bar_item->associated_display) {
         uint32_t sid = bar->sid;
         if (sid == 0) continue;
         if ((!bar_item->selected || forced)
-            && bar_item->associated_space & (1 << sid)) {
+            && bar_item->associated_space & mask_bit(sid)) {
           bar_item->selected = true;
           bar_item->updates = true;
           env_vars_set(&bar_item->signal_args.env_vars,
@@ -516,7 +517,7 @@ void bar_manager_update_space_components(struct bar_manager* bar_manager, bool f
                        string_copy("true")             );
         }
         else if ((bar_item->selected || forced)
-                 && !(bar_item->associated_space & (1 << sid))) {
+                 && !(bar_item->associated_space & mask_bit(sid))) {
           bar_item->selected = false;
           bar_item->updates = true;
           env_vars_set(&bar_item->signal_args.env_vars,
@@ -604,7 +605,7 @@ void bar_manager_begin(struct bar_manager* bar_manager) {
     uint32_t display_count = display_active_display_count();
     uint32_t bar_count = 0;
     for (uint32_t index = 1; index <= display_count; index++) {
-      if (!(bar_manager->displays & 1 << (index - 1))) continue;
+      if (!(bar_manager->displays & mask_bit(index - 1))) continue;
       bar_count++;
     }
 
@@ -617,7 +618,7 @@ void bar_manager_begin(struct bar_manager* bar_manager) {
 
     uint32_t bar_index = 0;
     for (uint32_t index = 1; index <= display_count; index++) {
-      if (!(bar_manager->displays & 1 << (index - 1))) continue;
+      if (!(bar_manager->displays & mask_bit(index - 1))) continue;
       uint32_t did = display_arrangement_display_id(index);
       bar_manager->bars[bar_index] = bar_create(did);
       bar_manager->bars[bar_index]->adid = index;
@@ -631,7 +632,7 @@ void bar_manager_begin(struct bar_manager* bar_manager) {
   display_reconcile_remember();
   bar_manager->active_displays = 0;
   for (int i = 0; i < bar_manager->bar_count; i++) {
-    bar_manager->active_displays |= 1 << bar_manager->bars[i]->adid;
+    bar_manager->active_displays |= mask_bit(bar_manager->bars[i]->adid);
   }
 
   bar_manager->active_adid = display_active_display_adid();

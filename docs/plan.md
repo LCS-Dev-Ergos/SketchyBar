@@ -100,11 +100,12 @@ separate changes after those behavior changes are stable.
   SbarLua is unchanged: the daemon's send timeout already breaks the
   deadlock of #794.
 - Open: windows embedded in bars and popups may still be freed before a
-  deferred frame update (R5, plausible, needs WindowServer to confirm); space
-  indices of 32 and more are still shifted in `bar.c` and `bar_manager.c`
-  (phase 7); S2 is the scripting model (phase 7). The message-domain fuzzer
-  now covers bounded `--add item`, `--set` and `--query` inputs through the
-  harness, with script execution and bootstrap lookups stubbed.
+  deferred frame update (R5, plausible, needs WindowServer to confirm). Space
+  and display indices beyond the 32-bit masks now select nothing without
+  undefined shifts; supporting those indices requires the phase 7 model. S2
+  is the scripting model (phase 7). The message-domain fuzzer covers bounded
+  `--add item`, `--set` and `--query` inputs through the harness, with script
+  execution and bootstrap lookups stubbed.
 
 ## 6. Live baseline
 

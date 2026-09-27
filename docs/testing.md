@@ -52,6 +52,9 @@ scripts the tests run write only to a temporary directory.
   SkyLight query fails, as it may during a wake. They cover property
   animations, out-of-range numbers and indices, WindowServer failures, item
   memory and removal during animations.
+- `mask_bounds_tests` exercises display and space associations at indices 31
+  and 32 through the bar and bar manager; UBSan catches signed and
+  out-of-range shifts before the guarded-mask fix.
 - `sanitize` instruments sketchybar and the tests with ASan and UBSan.
 - `thread-sanitize` uses TSan and UBSan instead. Run it separately from ASan.
   Both stop at the first undefined behaviour.
