@@ -117,6 +117,7 @@ struct animator {
 
 void animator_init(struct animator* animator);
 void animator_add(struct animator* animator, struct animation* animation);
+void animator_cancel_within(struct animator* animator, void* start, size_t size);
 
 bool animator_cancel(struct animator* animator, void* target, animator_function* function);
 void animator_cancel_locked(struct animator* animator, void* target, animator_function* function);

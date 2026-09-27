@@ -184,6 +184,7 @@ void bar_manager_remove_item(struct bar_manager* bar_manager, struct bar_item* b
            sizeof(struct bar_item*)*bar_manager->bar_item_count);
   }
 
+  animator_cancel_within(&bar_manager->animator, bar_item, sizeof(struct bar_item));
   bar_item_destroy(bar_item, true);
 }
 

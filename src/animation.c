@@ -260,6 +260,25 @@ bool animator_cancel(struct animator* animator, void* target, animator_function*
   return needs_update;
 }
 
+// Cancels the animations of every property within [start, start + size),
+// such as those of an item about to be freed, which would otherwise write to
+// it on the next frame.
+void animator_cancel_within(struct animator* animator, void* start, size_t size) {
+  struct animation* remove[max(animator->animation_count, 1)];
+  uint32_t remove_count = 0;
+
+  for (uint32_t i = 0; i < animator->animation_count; i++) {
+    char* target = animator->animations[i]->target;
+    if (target >= (char*)start && target < (char*)start + size) {
+      remove[remove_count++] = animator->animations[i];
+    }
+  }
+
+  for (uint32_t i = 0; i < remove_count; i++) {
+    animator_remove(animator, remove[i]);
+  }
+}
+
 bool animator_update(struct animator* animator, uint64_t time) {
   bool needs_refresh = false;
   struct animation* remove[max(animator->animation_count, 1)];
