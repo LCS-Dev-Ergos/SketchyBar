@@ -118,16 +118,21 @@ check; **[P]** plausible from code, not confirmed at runtime.
 
 ## Performance and WindowServer load
 
-Estimated from code; no live measurement yet.
+The cost descriptions are based on code inspection and isolated tests. The
+focused live baseline is in [performance.md](performance.md).
 
 - **P1** Everything runs on the main thread: parsing, `vfork` (which suspends
   the thread until `exec`), SkyLight calls, CoreText layout and captures.
-- **P2 Desktop switch.** `SPACE_CHANGED` arrives from three sources
-  (`src/sketchybar.c:224-225`, `src/workspace.m:125-128`). Each copies the
-  whole space list and looks up a display for every space item
-  (`src/bar_manager.c:480-524`): about 34 WindowServer calls per notification
-  with 16 space items, for three notifications. `space_windows_change` reads
-  every Desktop and window twice per switch
+- **P2 Desktop switch, partly addressed.** `SPACE_CHANGED` arrives from three
+  sources (`src/sketchybar.c`, `src/workspace.m`). The space-item update used
+  to copy the managed space list once per item and repeatedly resolve each
+  display. With 16 items, the isolated test failed its single-copy assertion
+  before the fix and observed one space-list plus one display-list copy
+  afterward. It also
+  checks two displays and missing WindowServer answers. This is a call-count
+  result, not a measured live latency improvement. The bar loop still queries
+  spaces per display, notifications are not deduplicated, and
+  `space_windows_change` reads every Desktop and window twice per switch
   (`src/app_windows.c:269-285`).
 - **P3 Lua.** Each event sends one message per subscribed item, and each
   `:set` is a separate message with its own parse, refresh and transaction

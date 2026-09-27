@@ -486,20 +486,78 @@ void bar_manager_update_alias_components(struct bar_manager* bar_manager, bool f
   }
 }
 
+static void bar_manager_space_display_masks(uint32_t masks[32]) {
+  for (int i = 0; i < 32; i++) masks[i] = mask_bit(30);
+
+  // Both lists belong to the same space-change event; do not fetch them for
+  // every space item while WindowServer may be reconfiguring displays.
+  CFArrayRef display_spaces = SLSCopyManagedDisplaySpaces(g_connection);
+  if (!display_spaces) return;
+  if (CFGetTypeID(display_spaces) != CFArrayGetTypeID()) {
+    CFRelease(display_spaces);
+    return;
+  }
+
+  CFArrayRef displays = SLSCopyManagedDisplays(g_connection);
+  if (!displays) {
+    CFRelease(display_spaces);
+    return;
+  }
+  if (CFGetTypeID(displays) != CFArrayGetTypeID()) {
+    CFRelease(displays);
+    CFRelease(display_spaces);
+    return;
+  }
+
+  int space_index = 1;
+  for (CFIndex i = 0; i < CFArrayGetCount(display_spaces) && space_index < 32; i++) {
+    CFDictionaryRef display = CFArrayGetValueAtIndex(display_spaces, i);
+    if (!display || CFGetTypeID(display) != CFDictionaryGetTypeID()) continue;
+
+    CFStringRef identifier = CFDictionaryGetValue(display, CFSTR("Display Identifier"));
+    CFArrayRef spaces = CFDictionaryGetValue(display, CFSTR("Spaces"));
+    if (!spaces || CFGetTypeID(spaces) != CFArrayGetTypeID()) continue;
+
+    uint32_t display_mask = mask_bit(30);
+    if (identifier) {
+      for (CFIndex j = 0; j < CFArrayGetCount(displays); j++) {
+        CFTypeRef candidate = CFArrayGetValueAtIndex(displays, j);
+        if (candidate && CFEqual(identifier, candidate)) {
+          uint32_t bit = mask_bit(j + 1);
+          if (bit) display_mask = bit;
+          break;
+        }
+      }
+    }
+
+    for (CFIndex j = 0; j < CFArrayGetCount(spaces) && space_index < 32; j++) {
+      CFDictionaryRef space = CFArrayGetValueAtIndex(spaces, j);
+      if (!space || CFGetTypeID(space) != CFDictionaryGetTypeID()) continue;
+      CFNumberRef sid = CFDictionaryGetValue(space, CFSTR("id64"));
+      if (!sid || CFGetTypeID(sid) != CFNumberGetTypeID()) continue;
+      masks[space_index++] = display_mask;
+    }
+  }
+
+  CFRelease(displays);
+  CFRelease(display_spaces);
+}
+
 void bar_manager_update_space_components(struct bar_manager* bar_manager, bool forced) {
+  uint32_t display_masks[32];
+  bool have_display_masks = false;
+
   for (int i = 0; i < bar_manager->bar_item_count; i++) {
     struct bar_item* bar_item = bar_manager->bar_items[i];
     if (bar_item->type != BAR_COMPONENT_SPACE) continue;
 
     if (!bar_item->overrides_association) {
+      if (!have_display_masks) {
+        bar_manager_space_display_masks(display_masks);
+        have_display_masks = true;
+      }
       uint32_t space = get_set_bit_position(bar_item->associated_space);
-      uint32_t space_did = display_id_for_space(space);
-      if (space_did) {
-        bar_item->associated_display = mask_bit(display_arrangement(space_did));
-      }
-      else {
-        bar_item->associated_display = mask_bit(30);
-      }
+      bar_item->associated_display = space < 32 ? display_masks[space] : mask_bit(30);
     }
     for (int j = 0; j < bar_manager->bar_count; j++) {
       struct bar* bar = bar_manager->bars[j];

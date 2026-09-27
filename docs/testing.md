@@ -59,6 +59,10 @@ scripts the tests run write only to a temporary directory.
 - `mask_bounds_tests` exercises display and space associations at indices 31
   and 32 through the bar and bar manager; UBSan catches signed and
   out-of-range shifts before the guarded-mask fix.
+- `space_snapshot_tests` stubs the managed-space and display lists to check
+  one copy per space-item update, two-display association, unchanged explicit
+  associations and safe fallback when WindowServer has no answer. The old
+  path fails the call-count assertion with 16 copies.
 - `sanitize` instruments sketchybar and the tests with ASan and UBSan.
 - `thread-sanitize` uses TSan and UBSan instead. Run it separately from ASan.
   Both stop at the first undefined behaviour.
