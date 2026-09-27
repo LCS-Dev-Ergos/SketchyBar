@@ -10,6 +10,8 @@
 
 extern CFTypeRef g_transaction;
 
+struct window_deferred_update;
+
 struct window {
   struct window* parent;
   int order_mode;
@@ -18,6 +20,7 @@ struct window {
 
   uint32_t id;
   int32_t refc;
+  struct window_deferred_update* deferred_update;
 
   CGRect frame;
   CGPoint origin;

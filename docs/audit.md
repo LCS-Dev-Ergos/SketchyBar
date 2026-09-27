@@ -101,10 +101,10 @@ check; **[P]** plausible from code, not confirmed at runtime.
   - [P] Animations keep writing to items that `--remove` freed;
     `bar_manager_remove_item` does not cancel them
     (`src/bar_manager.c:148-181`).
-  - [P] Windows embedded in bars and popups are freed while a deferred frame
-    update still refers to them; on macOS 26 and later
-    `SLSTransactionAddPostDecodeAction` decides when it runs
-    (`src/window.c:195-226`, `src/bar.c:549-552`, `src/popup.c:249`).
+  - [V] A deferred frame update reads an embedded window after its owner is
+    freed. An isolated post-decode callback replay reproduces the use after
+    free under ASan (`tests/window/deferred.c`); the fork now cancels pending
+    updates on close. Live WindowServer timing remains untested.
 - **R6 [P] Threads and deprecated APIs.** `CVDisplayLink`, deprecated since
   macOS 15, queues one block per frame on the main queue without coalescing
   (`src/animation.c:4-11`). `NSScreen` is read without an `NSApplication`,

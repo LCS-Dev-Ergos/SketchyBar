@@ -113,6 +113,12 @@ target_link_libraries(display_reconcile_tests PRIVATE "-framework CoreFoundation
 
 sketchybar_test(bar_level_tests tests/bar/level.c)
 
+# Includes window.c in the test translation unit to drive its internal
+# post-decode callback with WindowServer and surface calls stubbed.
+sketchybar_test(window_deferred_tests tests/window/deferred.c)
+target_link_options(window_deferred_tests PRIVATE -F${PRIVATE_FRAMEWORKS})
+target_link_libraries(window_deferred_tests PRIVATE ${SKETCHYBAR_FRAMEWORKS})
+
 # The Mach receive callback runs on a private port instead of the bootstrap
 # port, with a recording handler.
 sketchybar_test(mach_server_tests tests/mach/server.c ${SRC}/mach.c)

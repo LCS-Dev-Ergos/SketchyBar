@@ -11,6 +11,11 @@ extern CGError (* SBSLSTransactionAddPostDecodeAction)(CFTypeRef, void (^)());
 
 int g_space = 0;
 
+struct window_deferred_update {
+  struct window* window;
+  uint32_t pending;
+};
+
 void window_init(struct window* window) {
   window->context = NULL;
   window->surface = NULL;
@@ -22,6 +27,7 @@ void window_init(struct window* window) {
   window->needs_resize = false;
   window->order_mode = W_ABOVE;
   window->refc = 1;
+  window->deferred_update = NULL;
 }
 
 static CFTypeRef window_create_region(struct window* window, CGRect frame) {
@@ -121,6 +127,12 @@ void window_open(struct window* window, CGRect frame) {
 }
 
 void window_clear(struct window* window) {
+  if (window->deferred_update) {
+    window->deferred_update->window = NULL;
+    if (!window->deferred_update->pending) free(window->deferred_update);
+    window->deferred_update = NULL;
+  }
+
   window->context = NULL;
   window->surface = NULL;
   window->parent = NULL;
@@ -193,37 +205,55 @@ void window_move(struct window* window, CGPoint point) {
 
 }
 
-static void window_defer_update(struct window* window) {
+static void window_defer_update(struct window_deferred_update* update) {
   void (^block)() = ^{
-    if (!window->surface) return;
-    if (--window->refc <= 0) window_destroy(window);
-    else {
-      layer_set_bounds(window->surface->layer, window->frame);
-      window_flush(window);
+    struct window* window = update->window;
+    if (window) {
+      if (--window->refc == 0) {
+        window_close(window);
+        free(window);
+      } else if (window->surface) {
+        layer_set_bounds(window->surface->layer, window->frame);
+        window_flush(window);
+      }
     }
+
+    if (--update->pending == 0 && !update->window) free(update);
   };
 
   if (pthread_main_np()) dispatch_async(dispatch_get_main_queue(), block);
   else dispatch_sync(dispatch_get_main_queue(), block);
 }
 
+static void window_schedule_update(struct window* window, bool post_decode) {
+  if (!window->deferred_update) {
+    window->deferred_update = malloc(sizeof(struct window_deferred_update));
+    if (!window->deferred_update) return;
+    *window->deferred_update = (struct window_deferred_update) { window, 0 };
+  }
+
+  struct window_deferred_update* update = window->deferred_update;
+  update->pending++;
+  window->refc++;
+
+  if (post_decode && SBSLSTransactionAddPostDecodeAction) {
+    SBSLSTransactionAddPostDecodeAction(g_transaction, ^{
+      window_defer_update(update);
+    });
+  } else window_defer_update(update);
+}
+
 bool window_apply_frame(struct window* window, bool forced) {
   if (window->needs_resize || forced) {
     windows_freeze();
     CFTypeRef frame_region = window_create_region(window, window->frame);
-    window->refc++;
-
     if (__builtin_available(macOS 26.0, *)) {
       SLSTransactionSetWindowShape(g_transaction, window->id,
                                                   window->origin.x,
                                                   window->origin.y,
                                                   frame_region);
       window_move(window, window->origin);
-      if (SBSLSTransactionAddPostDecodeAction) {
-        SBSLSTransactionAddPostDecodeAction(g_transaction, ^{
-          window_defer_update(window);
-        });
-      } else window_defer_update(window);
+      window_schedule_update(window, true);
     }
     else if (__builtin_available(macOS 13.0, *)) {
       // Ventura and later
@@ -233,7 +263,7 @@ bool window_apply_frame(struct window* window, bool forced) {
                                       frame_region);
       window_clear_background(window);
       window_move(window, window->origin);
-      window_defer_update(window);
+      window_schedule_update(window, false);
     } else {
       // Monterey and previous
       if (window->parent) {
@@ -247,7 +277,7 @@ bool window_apply_frame(struct window* window, bool forced) {
         window_order(window, window->parent, window->order_mode);
       }
       window_move(window, window->origin);
-      window_defer_update(window);
+      window_schedule_update(window, false);
     }
 
     surface_resize(window->surface, window);
@@ -278,12 +308,10 @@ void window_send_to_space(struct window* window, uint64_t dsid) {
 }
 
 void window_close(struct window* window) {
-  if (!window->id) return;
-
-  SLSOrderWindow(g_connection, window->id, 0, 0);
+  if (window->id) SLSOrderWindow(g_connection, window->id, 0, 0);
   surface_destroy(window->surface);
   if (window->context) CGContextRelease(window->context);
-  SLSReleaseWindow(g_connection, window->id);
+  if (window->id) SLSReleaseWindow(g_connection, window->id);
   window_clear(window);
 }
 

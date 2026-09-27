@@ -92,17 +92,16 @@ separate changes after those behavior changes are stable.
   (`fix(script)`), R1 on the daemon side (`fix(mach)`: event and reply sends
   time out after 100 ms), R3 (`fix(display)`) and the verified R5 findings
   (`fix(items)`; `fix(animation)` for removal during animations, which the
-  message harness confirmed). The analyzer baseline fell from 52 to 19
-  findings.
+  message harness confirmed; and the deferred window callback verified by
+  `window_deferred_tests`). The analyzer baseline fell from 52 to 19 findings.
 - Deviations: scripts still start with `vfork`, because the child must set
   the alarm that SbarLua and long-running helpers cancel with `alarm(0)`,
   which `posix_spawn` cannot do; the child now only sets the alarm and execs.
   SbarLua is unchanged: the daemon's send timeout already breaks the
   deadlock of #794.
-- Open: windows embedded in bars and popups may still be freed before a
-  deferred frame update (R5, plausible, needs WindowServer to confirm). Space
-  and display indices beyond the 32-bit masks now select nothing without
-  undefined shifts; supporting those indices requires the phase 7 model. S2
+- Open: live WindowServer timing of the deferred window callback is still
+  unverified. Space and display indices beyond the 32-bit masks select nothing
+  without undefined shifts; supporting those indices requires the phase 7 model. S2
   is the scripting model (phase 7). The message-domain fuzzer covers bounded
   `--add item`, `--set` and `--query` inputs through the harness, with script
   execution and bootstrap lookups stubbed.

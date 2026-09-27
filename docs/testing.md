@@ -38,6 +38,10 @@ scripts the tests run write only to a temporary directory.
   fixed times, so a slow runner passes them.
 - `bar_level_tests` checks the bar background level against the item,
   desktop, normal window and menu bar levels for every `topmost` setting.
+- `window_deferred_tests` replays a captured post-decode callback after an
+  embedded window is cleared and freed, including storage reuse and a heap
+  window removed while a callback is pending. ASan reports a use after free
+  without the callback guard; WindowServer calls are stubbed.
 - `mach_server_tests` sends client, native-provider, inline, unterminated and
   descriptorless messages to the receive callback of `src/mach.c` on a private
   port. The native-provider and empty SbarLua transaction cases check that
