@@ -36,7 +36,7 @@ set(SKETCHYBAR_SOURCES
     mouse.c shadow.c font.c text.c message.c bar.c color.c window.c
     bar_manager.c display.c display_nsscreen.m group.c mach.c popup.c
     animation.c workspace.m volume.c slider.c power.c wifi.m media.m
-    hotload.c app_windows.c layer.m surface.c context.c
+    hotload.c app_windows.c layer.m surface.c context.c script.c
     display_layout.c display_reconcile.c)
 list(TRANSFORM SKETCHYBAR_SOURCES PREPEND ${SRC}/)
 
@@ -117,6 +117,10 @@ target_link_libraries(mach_server_tests PRIVATE "-framework CoreFoundation")
 sketchybar_test(mach_send_tests tests/mach/send.c ${SRC}/mach.c)
 target_link_libraries(mach_send_tests PRIVATE "-framework CoreFoundation")
 set_tests_properties(mach_send_tests PROPERTIES TIMEOUT 20)
+
+# Scripts run in a temporary directory, with a one-second alarm.
+sketchybar_test(script_tests tests/script/script.c ${SRC}/script.c)
+target_compile_definitions(script_tests PRIVATE FORK_TIMEOUT=1)
 
 # libFuzzer targets for the message protocol, see docs/testing.md. They need a
 # clang that ships libFuzzer, which Apple's does not. Each also runs as a short

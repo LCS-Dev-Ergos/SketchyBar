@@ -8,6 +8,7 @@
 #include "env_vars.h"
 #include "defines.h"
 #include "extern.h"
+#include "../script.h"
 
 #define array_count(a) (sizeof((a)) / sizeof(*(a)))
 #define max(a, b) (a > b ? a : b)
@@ -15,7 +16,6 @@
 #define clamp(x, l, u) (min(max(x, l), u))
 
 #define MAXLEN 512
-#define FORK_TIMEOUT 60
 
 extern int g_connection;
 
@@ -437,29 +437,6 @@ static inline bool ensure_executable_permission(char *filename) {
   }
   return true;
 }
-
-static inline bool sync_exec(char *command, struct env_vars *env_vars) {
-  if (env_vars) {
-    for (int i = 0; i < env_vars->count; i++) {
-      setenv(env_vars->vars[i]->key, env_vars->vars[i]->value, 1);
-    }
-  }
-
-  char *exec[] = { "/usr/bin/env", "sh", "-c", command, NULL};
-  return execvp(exec[0], exec);
-}
-
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-static inline bool fork_exec(char *command, struct env_vars* env_vars) {
-  int pid = vfork();
-  if (pid == -1) return false;
-  if (pid !=  0) return true;
-
-  alarm(FORK_TIMEOUT);
-  exit(sync_exec(command, env_vars));
-}
-#pragma clang diagnostic pop
 
 static inline int mission_control_index(uint64_t sid) {
   uint64_t result = 0;

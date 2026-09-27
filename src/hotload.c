@@ -63,7 +63,7 @@ void exec_config_file() {
     return;
   }
 
-  if (!fork_exec(g_config_file, NULL)) {
+  if (!fork_exec_file(g_config_file)) {
     printf("failed to execute file '%s'\n", g_config_file);
     return;
   }
