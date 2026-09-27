@@ -274,3 +274,26 @@ order; the original value 0 was restored. One query was empty in an earlier
 immediate blur probe, without a daemon exit; the repeated probe was stable.
 These checks do not establish rendered-pixel completion, the appearance of
 nonzero blur, Desktop navigation latency, or full-system sleep recovery.
+
+## lcs.4 lower-edge pixel artifacts
+
+The user reported white points along the bar's lower edge after the lcs.4
+switch. On the 40-point top bar at 2x scale, a screen capture counted 184
+bright pixels in small groups on rows 78 and 79, aligned with item windows.
+A clean restart of the signed service still showed 184, so a reload was not
+required. The release's macOS 26 path skipped creation and clearing of the
+WindowServer backing-store context. A temporary build that restored that
+context removed all bright pixels at startup and after reload, but retaining
+the context raised three reloads to 2.904-3.260 s.
+
+The local correction creates and clears the context once for each new physical
+window, then releases it on macOS 26; earlier macOS versions retain their
+original behavior. The WindowServer backing store remains clean while cached
+windows retain no context. A temporary agent with the same immutable config
+showed zero bright edge pixels at startup and after three reloads; those
+reloads returned 126 items in 0.617-0.685 s. Release, ASan/UBSan and
+TSan/UBSan each passed 20/20, the makefile built both architectures and the
+analyzer found nothing above baseline. The signed lcs.4 service was restored
+after each A/B run; its edge still showed 188 bright pixels in a final probe.
+The live screenshot probe stays under ignored `build/visual/` because it needs
+this display layout and screen-capture permission.

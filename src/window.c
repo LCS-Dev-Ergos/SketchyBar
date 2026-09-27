@@ -99,12 +99,15 @@ void window_open(struct window* window, CGRect frame) {
   SLSSetWindowOpacity(g_connection, window->id, 0);
 
   if (!reused_window) {
-    if (__builtin_available(macOS 26.0, *)) { }
-    else {
-      window->context = SLWindowContextCreate(g_connection, window->id, NULL);
-      window_clear_background(window);
-      if (window->context)
-        CGContextSetInterpolationQuality(window->context, kCGInterpolationNone);
+    // Clear the WindowServer backing store once. Without this context macOS 26
+    // leaves bright pixels at the lower edge of otherwise transparent windows.
+    window->context = SLWindowContextCreate(g_connection, window->id, NULL);
+    window_clear_background(window);
+    if (__builtin_available(macOS 26.0, *)) {
+      if (window->context) CGContextRelease(window->context);
+      window->context = NULL;
+    } else if (window->context) {
+      CGContextSetInterpolationQuality(window->context, kCGInterpolationNone);
     }
     window->surface = surface_create(window);
   }

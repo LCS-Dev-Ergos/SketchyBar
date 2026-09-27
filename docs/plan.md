@@ -15,7 +15,7 @@ checks and exit criterion. Findings are referenced by their ids in the
 | 3. VS Code workspace | Done on `dev` |
 | 4. CI and releases | Done: signed `v2.24.0-lcs.4` is active through Dotfiles |
 | 5. Targeted hardening | Done, except the items listed in its section |
-| 6. Live baseline | In progress: `lcs.3` Desktop and CPU, `lcs.4` reload checked; full system sleep unverified |
+| 6. Live baseline | In progress: `lcs.3` Desktop and CPU, `lcs.4` reload checked; lower-edge pixel fix local, full system sleep unverified |
 | 7. Restructuring | Not started |
 | 8. Repository maintenance | Planned after safety, robustness and performance work |
 
