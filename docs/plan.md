@@ -9,11 +9,11 @@ checks and exit criterion. Findings are referenced by their ids in the
 
 | Phase | State |
 | --- | --- |
-| 0. Fork and synchronization | Done, except the Actions setting that lets the sync workflow open pull requests |
+| 0. Fork and synchronization | Done |
 | 1. Dotfiles patches as commits | Done on `dev` |
 | 2. CMake and presets | Done on `dev` |
 | 3. VS Code workspace | Done on `dev` |
-| 4. CI and releases | Not started |
+| 4. CI and releases | CI done; first release and Dotfiles package in progress |
 | 5. Targeted hardening | Not started |
 | 6. Live baseline | Not started; needs the user's agreement |
 | 7. Restructuring | Not started |
@@ -36,8 +36,9 @@ CTest from their first commit.
 - Goal: `fix(display)` for the display reconciliation and `fix(bar)` for the
   background window level, each with its own tests, replacing the text
   extraction of the Python test with C tests.
-- Risks: overlap with upstream #847, #851 and #855; the background shares the
-  menu bar's level with `topmost=on`.
+- Risks: overlap with upstream #847, #851 and #855. With `topmost=on` the
+  background first shared the menu bar's level; the items now sit one level
+  above the status level instead.
 - Checks: unit tests under ASan, UBSan and TSan, a mutation check of the
   reconciliation test, the upstream makefile build, and the `window_order`
   tool on the running bar.
