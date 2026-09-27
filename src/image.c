@@ -41,6 +41,7 @@ bool image_load(struct image* image, char* path, FILE* rsp) {
   char* app = string_copy(path);
   if (image->path) free(image->path);
   image->path = string_copy(path);
+  // Frees a path that starts with ~, so only image->path is read below.
   char* res_path = resolve_path(path);
   CGImageRef new_image_ref = NULL;
   float scale = 1.f;
@@ -67,7 +68,7 @@ bool image_load(struct image* image, char* path, FILE* rsp) {
       free(app);
       return false;
     }
-  } else if (strcmp(path, "media.artwork") == 0) {
+  } else if (strcmp(image->path, "media.artwork") == 0) {
     free(res_path);
     free(app);
     begin_receiving_media_events();

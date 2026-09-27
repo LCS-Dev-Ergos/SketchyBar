@@ -749,6 +749,10 @@ static void bar_item_clear_pointers(struct bar_item* bar_item) {
   slider_clear_pointers(&bar_item->slider);
   popup_clear_pointers(&bar_item->popup);
   bar_item->popup.host = bar_item;
+  bar_item->alias.name = NULL;
+  bar_item->alias.owner = NULL;
+  image_clear_pointers(&bar_item->alias.image);
+  window_init(&bar_item->alias.window);
 }
 
 void bar_item_inherit_from_item(struct bar_item* bar_item, struct bar_item* ancestor) {
@@ -775,6 +779,22 @@ void bar_item_inherit_from_item(struct bar_item* bar_item, struct bar_item* ance
     bar_item_set_script(bar_item, string_copy(ancestor->script));
   if (ancestor->click_script)
     bar_item_set_click_script(bar_item, string_copy(ancestor->click_script));
+
+  // A clone owns its graph samples and alias names, which removing either
+  // item frees.
+  if (ancestor->graph.y) {
+    graph_setup(&bar_item->graph, ancestor->graph.width);
+    if (bar_item->graph.y) {
+      memcpy(bar_item->graph.y,
+             ancestor->graph.y,
+             sizeof(float) * bar_item->graph.width);
+    }
+  }
+
+  if (ancestor->alias.name)
+    bar_item->alias.name = string_copy(ancestor->alias.name);
+  if (ancestor->alias.owner)
+    bar_item->alias.owner = string_copy(ancestor->alias.owner);
 
   image_copy(&bar_item->background.image,
              ancestor->background.image.image_ref);

@@ -5,7 +5,6 @@
 1 src/display.c: Potential leak of memory pointed to by 'result' [unix.Malloc]
 1 src/display.c: Potential leak of memory pointed to by 'space_list' [unix.Malloc]
 2 src/image.c: Potential leak of an object stored into 'new_image_ref' [osx.cocoa.RetainCount]
-1 src/image.c: Use of memory after it is freed [unix.Malloc]
 1 src/media.m: Null pointer argument in call to CFRelease [osx.coreFoundation.CFRetainRelease]
 1 src/media.m: Potential leak of an object stored into 'image' [osx.cocoa.RetainCount]
 1 src/message.c: Potential leak of memory pointed to by 'bar_items' [unix.Malloc]

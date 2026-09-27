@@ -120,7 +120,8 @@ int bar_manager_get_item_index_by_address(struct bar_manager* bar_manager, struc
 }
 
 void bar_manager_move_item(struct bar_manager* bar_manager, struct bar_item* item, struct bar_item* reference, bool before) {
-  if (bar_manager->bar_item_count <= 0) return;
+  // Moving an item relative to itself would leave a slot of the list unset.
+  if (bar_manager->bar_item_count <= 0 || item == reference) return;
   struct bar_item* tmp[bar_manager->bar_item_count];
   int count = 0;
   for (int i = 0; i < bar_manager->bar_item_count; i++) {
@@ -136,6 +137,10 @@ void bar_manager_move_item(struct bar_manager* bar_manager, struct bar_item* ite
     }
     tmp[count++] = bar_manager->bar_items[i];
   }
+
+  // Without the reference in the list, one slot would stay unset as well.
+  if (count != bar_manager->bar_item_count) return;
+
   bar_manager->bar_items = realloc(
                         bar_manager->bar_items,
                         sizeof(struct bar_item*)*bar_manager->bar_item_count);
