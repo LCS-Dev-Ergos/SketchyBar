@@ -57,7 +57,8 @@ check; **[P]** plausible from code, not confirmed at runtime.
   releases the send right (`src/bar_item.c:378-381`); JSON in query output and
   `INFO` does not escape names (`src/app_windows.c:162`); every error is
   printed to stdout, so the service log grows without bound. Running as root
-  is refused (`src/sketchybar.c:205`).
+  is refused (`src/sketchybar.c:205`). The send-right lifetime is fixed on
+  `dev`, including clones; the other findings remain.
 - **S7 [P] Ad-hoc signature.** Each Nix rebuild changes the code directory
   hash, which can void the Screen Recording grant. A stable signature from CI,
   as for yabai, avoids that.

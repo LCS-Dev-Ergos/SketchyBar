@@ -46,6 +46,43 @@ transaction slow remains open; these observations do not establish a
 fork-specific regression. Repeated interleaved runs, including WindowServer
 diagnostics, would be needed before changing rendering code.
 
+## Burst reloads and Lua helpers
+
+The active signed `lcs.2` service showed a separate, reproducible problem.
+Three `--reload` commands sent over 0.402 s each acknowledged in about
+0.11 s, but the bar took 12.551 s to first report 126 items. The service
+had three persistent SbarLua processes afterward, later four, duplicate
+Brew providers and four new `Item not found` errors. A service restart
+restored one Lua process, one each CPU, network and Brew provider, and
+126 items. A six-reload sequential probe included fast and slow rebuilds,
+but one query missed its all-items interval; it does not establish a
+monotonic slowdown from sequential reloads.
+
+The daemon starts the configuration asynchronously. Before SbarLua's batched
+`mach_helper` setting reaches an item, the daemon has no event port to which
+`bar_manager_destroy` can send its stop message. A second reload in that
+window leaves the first Lua process running; late configuration batches and
+provider startup commands then overlap. The Dotfiles Lua configuration
+starts CPU, Brew and network providers with asynchronous `pkill; provider &`
+commands during module loading. That startup pattern amplifies overlapping
+configurations. Its ordinary space-change callback does not invoke yabai;
+yabai commands occur in the click handlers. Contention with yabai is an
+inference from the extra processes and WindowServer work, not a measured
+causal timing result.
+
+The local `dev` change coalesces reload requests for 200 ms, waits for the
+new configuration to register a Mach port or for a short-lived config
+process to exit, and starts at most one queued reload afterward. The isolated
+test failed before the gate and passes after it. The same change sends one
+stop per distinct event port and releases send-right references on replacement,
+clone and destruction; a Mach-port test verifies the ownership and single
+stop. The active signed release has not been replaced, so the live burst
+improvement remains to be measured after the next deployment. The separate
+0.85–7.51 s single-reload variation above remains open; its slow sample was
+dominated by QuartzCore and also occurred on upstream master.
+
+## Earlier native provider framing
+
 Separately, the fork's new Mach validator rejected native provider messages
 that ended with one NUL. CPU, network, and Brew processes were alive, but
 their widgets stayed at their placeholder values. The receiver now appends

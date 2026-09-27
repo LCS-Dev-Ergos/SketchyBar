@@ -1157,9 +1157,16 @@ void bar_manager_handle_notification(struct bar_manager* bar_manager, struct not
 void bar_manager_destroy(struct bar_manager* bar_manager) {
   for (int i = 0; i < bar_manager->bar_item_count; i++) {
     struct bar_item* bar_item = bar_manager->bar_items[i];
-    if (bar_item->event_port) {
-      mach_send_message(bar_item->event_port, "k", 2, false);
+    mach_port_t port = bar_item->event_port;
+    if (!port) continue;
+    bool sent = false;
+    for (int j = 0; j < i; j++) {
+      if (bar_manager->bar_items[j]->event_port == port) {
+        sent = true;
+        break;
+      }
     }
+    if (!sent) mach_send_message(port, "k", 2, false);
   }
 
   animator_destroy(&bar_manager->animator);

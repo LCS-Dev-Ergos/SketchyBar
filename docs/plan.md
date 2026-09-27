@@ -132,8 +132,11 @@ the phase 6 baseline:
 - rendering at each display's scale, without copying backing stores, on a
   current display link;
 - authentication of message senders;
-- investigate the intermittent full reload cost with WindowServer evidence
-  before changing the window creation or rendering path.
+- measure the new burst-reload gate after deployment: it prevents overlapping
+  Lua configurations, while the intermittent single-reload QuartzCore cost
+  still needs WindowServer evidence before changing window creation or
+  rendering; check whether the Dotfiles providers need an idempotent startup
+  mechanism if duplicates remain after the gate.
 
 ## 8. Repository maintenance
 

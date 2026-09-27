@@ -51,6 +51,10 @@ scripts the tests run write only to a temporary directory.
   release the rights of the undelivered messages.
 - `script_tests` runs scripts through `src/script.c`: the environment, spaced
   configuration paths and the alarm, shortened to one second.
+- `reload_gate_tests` reproduces a burst of configuration reloads against
+  counting stubs. It checks one launch per burst, a queued reload after
+  event-port registration, and release of the barrier when a short-lived
+  config process exits. The first assertion failed before the gate.
 - `message_*_tests` send commands to the daemon's message handlers through
   `tests/message/harness.h`, which links every source but `main` and creates
   no bar, so items never get windows. Without a WindowServer connection every
@@ -60,6 +64,9 @@ scripts the tests run write only to a temporary directory.
 - `mask_bounds_tests` exercises display and space associations at indices 31
   and 32 through the bar and bar manager; UBSan catches signed and
   out-of-range shifts before the guarded-mask fix.
+- `port_lifetime_tests` checks that a clone retains its own Mach send right,
+  reload sends one stop to the shared port, and destruction releases both
+  references.
 - `space_snapshot_tests` stubs the managed-space and display lists to check
   one copy per space-item update, two-display association, unchanged explicit
   associations, safe fallback when WindowServer has no answer, and reuse of

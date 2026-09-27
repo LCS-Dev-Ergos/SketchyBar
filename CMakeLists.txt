@@ -134,6 +134,10 @@ set_tests_properties(mach_send_tests PROPERTIES TIMEOUT 20)
 sketchybar_test(script_tests tests/script/script.c ${SRC}/script.c)
 target_compile_definitions(script_tests PRIVATE FORK_TIMEOUT=1)
 
+sketchybar_test(reload_gate_tests tests/reload/gate.c ${SRC}/hotload.c)
+target_link_options(reload_gate_tests PRIVATE -F${PRIVATE_FRAMEWORKS})
+target_link_libraries(reload_gate_tests PRIVATE ${SKETCHYBAR_FRAMEWORKS})
+
 # The message handlers of the daemon, without bars and hence without windows
 # (tests/message/harness.h).
 function(sketchybar_message_test name source)
@@ -147,6 +151,7 @@ sketchybar_message_test(message_animation_tests tests/message/animation.c)
 sketchybar_message_test(message_input_tests tests/message/inputs.c)
 sketchybar_message_test(message_windowserver_tests tests/message/windowserver.c)
 sketchybar_message_test(message_memory_tests tests/message/memory.c)
+sketchybar_message_test(port_lifetime_tests tests/message/port_lifetime.c)
 sketchybar_message_test(message_removal_tests tests/message/removal.c)
 sketchybar_message_test(mask_bounds_tests tests/message/mask_bounds.c)
 sketchybar_message_test(space_snapshot_tests tests/message/space_snapshot.c)

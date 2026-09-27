@@ -357,10 +357,7 @@ static void event_space_windows_changed(void* context) {
 }
 
 static void event_hotload(void* context) {
-  bar_manager_destroy(&g_bar_manager);
-  bar_manager_init(&g_bar_manager);
-  bar_manager_begin(&g_bar_manager);
-  exec_config_file();
+  hotload_request();
 }
 
 typedef void callback_type(void*);

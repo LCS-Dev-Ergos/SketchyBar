@@ -1,6 +1,7 @@
 #pragma once
 #include <assert.h>
 #include <stdbool.h>
+#include <sys/types.h>
 #include "misc/env_vars.h"
 
 // Runs a command with sh -c, with the variables of an event added to the
@@ -10,3 +11,7 @@ bool fork_exec(char* command, struct env_vars* env_vars);
 // Runs a file with sh, which also accepts a path with spaces and a file
 // without an interpreter line.
 bool fork_exec_file(char* path);
+
+// The direct child PID lets reloads wait for a short-lived config to finish.
+// Zero means spawning failed.
+pid_t fork_exec_file_pid(char* path);

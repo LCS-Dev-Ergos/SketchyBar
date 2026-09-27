@@ -65,10 +65,10 @@ static void environment_destroy(char** environment) {
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-static bool spawn(char** arguments, char** environment) {
+static pid_t spawn(char** arguments, char** environment) {
   pid_t pid = vfork();
-  if (pid == -1) return false;
-  if (pid != 0) return true;
+  if (pid == -1) return 0;
+  if (pid != 0) return pid;
 
   alarm(FORK_TIMEOUT);
   execve(arguments[0], arguments, environment);
@@ -86,12 +86,16 @@ bool fork_exec(char* command, struct env_vars* env_vars) {
   return spawned;
 }
 
-bool fork_exec_file(char* path) {
+pid_t fork_exec_file_pid(char* path) {
   char** environment = environment_create(NULL);
-  if (!environment) return false;
+  if (!environment) return 0;
 
   char* arguments[] = { "/usr/bin/env", "sh", "-c", "\"$0\"", path, NULL };
-  bool spawned = spawn(arguments, environment);
+  pid_t pid = spawn(arguments, environment);
   environment_destroy(environment);
-  return spawned;
+  return pid;
+}
+
+bool fork_exec_file(char* path) {
+  return fork_exec_file_pid(path) != 0;
 }

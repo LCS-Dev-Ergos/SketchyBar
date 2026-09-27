@@ -1,6 +1,7 @@
 #include "bar_item.h"
 #include "bar_manager.h"
 #include "event.h"
+#include "hotload.h"
 #include "volume.h"
 #include "power.h"
 #include "media.h"
@@ -378,7 +379,10 @@ static bool bar_item_set_width(struct bar_item* bar_item, int width) {
 
 static void bar_item_set_event_port(struct bar_item* bar_item, char* bs_name) {
   mach_port_t port = mach_get_bs_port(bs_name);
+  if (bar_item->event_port)
+    mach_port_deallocate(mach_task_self(), bar_item->event_port);
   bar_item->event_port = port;
+  if (port) hotload_config_registered();
 }
 
 bool bar_item_set_name(struct bar_item* bar_item, char* name) {
@@ -759,6 +763,8 @@ void bar_item_inherit_from_item(struct bar_item* bar_item, struct bar_item* ance
   text_destroy(&bar_item->icon);
   text_destroy(&bar_item->label);
   text_destroy(&bar_item->slider.knob);
+  if (bar_item->event_port)
+    mach_port_deallocate(mach_task_self(), bar_item->event_port);
   
   char* name = bar_item->name;
   char* script = bar_item->script;
@@ -766,6 +772,11 @@ void bar_item_inherit_from_item(struct bar_item* bar_item, struct bar_item* ance
 
   memcpy(bar_item, ancestor, sizeof(struct bar_item));
   bar_item_clear_pointers(bar_item);
+  if (bar_item->event_port
+      && mach_port_mod_refs(mach_task_self(), bar_item->event_port,
+                            MACH_PORT_RIGHT_SEND, 1) != KERN_SUCCESS) {
+    bar_item->event_port = 0;
+  }
 
   bar_item->name = name;
   bar_item->script = script;
@@ -822,6 +833,8 @@ void bar_item_inherit_from_item(struct bar_item* bar_item, struct bar_item* ance
 }
 
 void bar_item_destroy(struct bar_item* bar_item, bool free_memory) {
+  if (bar_item->event_port)
+    mach_port_deallocate(mach_task_self(), bar_item->event_port);
   if (bar_item->name) free(bar_item->name);
   if (bar_item->script) free(bar_item->script);
   if (bar_item->click_script) free(bar_item->click_script);

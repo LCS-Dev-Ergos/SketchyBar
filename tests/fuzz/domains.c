@@ -21,6 +21,11 @@ bool fork_exec_file(char* path) {
   return false;
 }
 
+pid_t fork_exec_file_pid(char* path) {
+  (void)path;
+  return 0;
+}
+
 mach_port_t mach_get_bs_port(char* bs_name) {
   (void)bs_name;
   return MACH_PORT_NULL;
