@@ -486,26 +486,48 @@ void bar_manager_update_alias_components(struct bar_manager* bar_manager, bool f
   }
 }
 
-static void bar_manager_space_display_masks(uint32_t masks[32]) {
-  for (int i = 0; i < 32; i++) masks[i] = mask_bit(30);
-
-  // Both lists belong to the same space-change event; do not fetch them for
-  // every space item while WindowServer may be reconfiguring displays.
+static CFArrayRef bar_manager_copy_managed_spaces(void) {
   CFArrayRef display_spaces = SLSCopyManagedDisplaySpaces(g_connection);
-  if (!display_spaces) return;
+  if (!display_spaces) return NULL;
   if (CFGetTypeID(display_spaces) != CFArrayGetTypeID()) {
     CFRelease(display_spaces);
-    return;
+    return NULL;
   }
+  return display_spaces;
+}
+
+static int bar_manager_space_index(CFArrayRef display_spaces, uint64_t dsid) {
+  if (!display_spaces) return 0;
+
+  int index = 1;
+  for (CFIndex i = 0; i < CFArrayGetCount(display_spaces); i++) {
+    CFDictionaryRef display = CFArrayGetValueAtIndex(display_spaces, i);
+    if (!display || CFGetTypeID(display) != CFDictionaryGetTypeID()) continue;
+    CFArrayRef spaces = CFDictionaryGetValue(display, CFSTR("Spaces"));
+    if (!spaces || CFGetTypeID(spaces) != CFArrayGetTypeID()) continue;
+
+    for (CFIndex j = 0; j < CFArrayGetCount(spaces); j++) {
+      CFDictionaryRef space = CFArrayGetValueAtIndex(spaces, j);
+      if (!space || CFGetTypeID(space) != CFDictionaryGetTypeID()) continue;
+      CFNumberRef sid = CFDictionaryGetValue(space, CFSTR("id64"));
+      if (!sid || CFGetTypeID(sid) != CFNumberGetTypeID()) continue;
+      int64_t value = 0;
+      if (!CFNumberGetValue(sid, kCFNumberSInt64Type, &value)) continue;
+      if ((uint64_t)value == dsid) return index;
+      index++;
+    }
+  }
+  return 0;
+}
+
+static void bar_manager_space_display_masks(uint32_t masks[32], CFArrayRef display_spaces) {
+  for (int i = 0; i < 32; i++) masks[i] = mask_bit(30);
+  if (!display_spaces) return;
 
   CFArrayRef displays = SLSCopyManagedDisplays(g_connection);
-  if (!displays) {
-    CFRelease(display_spaces);
-    return;
-  }
+  if (!displays) return;
   if (CFGetTypeID(displays) != CFArrayGetTypeID()) {
     CFRelease(displays);
-    CFRelease(display_spaces);
     return;
   }
 
@@ -540,10 +562,11 @@ static void bar_manager_space_display_masks(uint32_t masks[32]) {
   }
 
   CFRelease(displays);
-  CFRelease(display_spaces);
 }
 
-void bar_manager_update_space_components(struct bar_manager* bar_manager, bool forced) {
+static void bar_manager_update_space_components_with_snapshot(struct bar_manager* bar_manager,
+                                                              bool forced,
+                                                              CFArrayRef display_spaces) {
   uint32_t display_masks[32];
   bool have_display_masks = false;
 
@@ -553,7 +576,7 @@ void bar_manager_update_space_components(struct bar_manager* bar_manager, bool f
 
     if (!bar_item->overrides_association) {
       if (!have_display_masks) {
-        bar_manager_space_display_masks(display_masks);
+        bar_manager_space_display_masks(display_masks, display_spaces);
         have_display_masks = true;
       }
       uint32_t space = get_set_bit_position(bar_item->associated_space);
@@ -588,6 +611,21 @@ void bar_manager_update_space_components(struct bar_manager* bar_manager, bool f
       }
     }
   }
+}
+
+void bar_manager_update_space_components(struct bar_manager* bar_manager, bool forced) {
+  bool needs_snapshot = false;
+  for (int i = 0; i < bar_manager->bar_item_count; i++) {
+    struct bar_item* item = bar_manager->bar_items[i];
+    if (item->type == BAR_COMPONENT_SPACE && !item->overrides_association) {
+      needs_snapshot = true;
+      break;
+    }
+  }
+
+  CFArrayRef display_spaces = needs_snapshot ? bar_manager_copy_managed_spaces() : NULL;
+  bar_manager_update_space_components_with_snapshot(bar_manager, forced, display_spaces);
+  if (display_spaces) CFRelease(display_spaces);
 }
 
 void bar_manager_animator_refresh(struct bar_manager* bar_manager, uint64_t time) {
@@ -1007,6 +1045,7 @@ void bar_manager_handle_space_windows_change(struct bar_manager* bar_manager, ch
 }
 
 void bar_manager_handle_space_change(struct bar_manager* bar_manager, bool forced) {
+  CFArrayRef display_spaces = bar_manager_copy_managed_spaces();
   struct env_vars env_vars;
   env_vars_init(&env_vars);
   char info[19 * bar_manager->bar_count + 4];
@@ -1018,7 +1057,7 @@ void bar_manager_handle_space_change(struct bar_manager* bar_manager, bool force
   bool force_refresh = false;
   for (int i = 0; i < bar_manager->bar_count; i++) {
     uint64_t dsid = display_space_id(bar_manager->bars[i]->did);
-    bar_manager->bars[i]->sid = mission_control_index(dsid);
+    bar_manager->bars[i]->sid = bar_manager_space_index(display_spaces, dsid);
 
     bool was_shown = bar_manager->bars[i]->shown;
     bar_manager->bars[i]->shown = SLSSpaceGetType(g_connection, dsid) != 4 || bar_manager->show_in_fullscreen;
@@ -1047,7 +1086,8 @@ void bar_manager_handle_space_change(struct bar_manager* bar_manager, bool force
   info[cursor + 1] = '\0';
   env_vars_set(&env_vars, string_copy("INFO"), string_copy(info));
 
-  bar_manager_update_space_components(bar_manager, forced);
+  bar_manager_update_space_components_with_snapshot(bar_manager, forced, display_spaces);
+  if (display_spaces) CFRelease(display_spaces);
   bar_manager_custom_events_trigger(bar_manager,
                                     COMMAND_SUBSCRIBE_SPACE_CHANGE,
                                     &env_vars                      );

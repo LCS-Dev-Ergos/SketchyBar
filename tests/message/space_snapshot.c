@@ -19,6 +19,18 @@ CFArrayRef SLSCopyManagedDisplays(int cid) {
   return managed_displays ? CFRetain(managed_displays) : NULL;
 }
 
+CFUUIDRef CGDisplayCreateUUIDFromDisplayID(CGDirectDisplayID did) {
+  CFStringRef identifier = did == 1 ? CFSTR("11111111-1111-1111-1111-111111111111")
+                                   : CFSTR("22222222-2222-2222-2222-222222222222");
+  return CFUUIDCreateFromString(NULL, identifier);
+}
+
+uint64_t SLSManagedDisplayGetCurrentSpace(int cid, CFStringRef identifier) {
+  return CFEqual(identifier, CFSTR("11111111-1111-1111-1111-111111111111")) ? 101 : 201;
+}
+
+int SLSSpaceGetType(int cid, uint64_t sid) { return 1; }
+
 static CFDictionaryRef make_space(int64_t id) {
   CFNumberRef number = CFNumberCreate(NULL, kCFNumberSInt64Type, &id);
   const void* keys[] = { CFSTR("id64") };
@@ -103,6 +115,19 @@ int main(void) {
   bar_manager_update_space_components(&manager, false);
   assert(space_calls == 1 && display_calls == 1);
   assert(items[0].associated_display == mask_bit(30));
+
+  struct bar first_bar = { .did = 1, .adid = 1, .dsid = 101, .shown = true };
+  struct bar second_bar = { .did = 2, .adid = 2, .dsid = 201, .shown = true };
+  struct bar* bars[] = { &first_bar, &second_bar };
+  manager.bar_items = NULL;
+  manager.bar_item_count = 0;
+  manager.bars = bars;
+  manager.bar_count = 2;
+  space_calls = 0;
+  display_calls = 0;
+  bar_manager_handle_space_change(&manager, false);
+  assert(space_calls == 1);
+  assert(first_bar.sid == 3 && second_bar.sid == 1);
 
   CFRelease(managed_spaces);
   CFRelease(first);
