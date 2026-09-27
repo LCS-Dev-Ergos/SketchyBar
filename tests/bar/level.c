@@ -9,7 +9,7 @@
 int main(void) {
   const int item_levels[] = { kCGBackstopMenuLevel,
                               kCGFloatingWindowLevel,
-                              kCGStatusWindowLevel    };
+                              BAR_TOPMOST_ITEM_LEVEL  };
 
   // The background sits below the items at every topmost setting, so a click
   // that raises it within its level cannot cover them.
@@ -23,9 +23,11 @@ int main(void) {
   // topmost=window keeps it above ordinary application windows.
   assert(bar_background_level(kCGFloatingWindowLevel) > kCGNormalWindowLevel);
 
-  // topmost=on leaves it at the menu bar's own level, not below it; only the
-  // items are above the menu bar there.
-  assert(bar_background_level(kCGStatusWindowLevel) == kCGMainMenuWindowLevel);
+  // topmost=on keeps the background at the status level, strictly above the
+  // menu bar, and the items below menus and topmost popups.
+  assert(bar_background_level(BAR_TOPMOST_ITEM_LEVEL) > kCGMainMenuWindowLevel);
+  assert(bar_background_level(BAR_TOPMOST_ITEM_LEVEL) == kCGStatusWindowLevel);
+  assert(BAR_TOPMOST_ITEM_LEVEL < kCGPopUpMenuWindowLevel);
 
   printf("bar background levels: passed\n");
   return 0;

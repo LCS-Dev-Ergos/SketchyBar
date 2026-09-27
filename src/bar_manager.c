@@ -11,6 +11,7 @@
 #include "media.h"
 #include "app_windows.h"
 #include "display_reconcile.h"
+#include "bar_level.h"
 
 extern void forced_front_app_event();
 
@@ -294,7 +295,7 @@ bool bar_manager_set_topmost(struct bar_manager *bar_manager, char level, bool t
     if (level == TOPMOST_LEVEL_WINDOW) {
       bar_manager->window_level = kCGFloatingWindowLevel;
     } else if (level == TOPMOST_LEVEL_ALL) {
-      bar_manager->window_level = kCGStatusWindowLevel;
+      bar_manager->window_level = BAR_TOPMOST_ITEM_LEVEL;
     }
   } else {
     bar_manager->window_level = kCGBackstopMenuLevel;
