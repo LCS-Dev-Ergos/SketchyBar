@@ -1,4 +1,5 @@
 #include "mach.h"
+#include "mach_validate.h"
 #include <mach/mach_port.h>
 #include <mach/message.h>
 #include <stdint.h>
@@ -126,6 +127,11 @@ char* mach_send_message(mach_port_t port, char* message, uint32_t len, bool awai
 
 void mach_message_callback(CFMachPortRef port, void* message, CFIndex size, void* context) {
   struct mach_server* mach_server = context;
+  if (!mach_message_valid(message, size)) {
+    mach_msg_destroy(message);
+    return;
+  }
+
   struct mach_buffer buffer;
   buffer.message = *(struct mach_message*)message;
   mach_server->handler(&buffer);

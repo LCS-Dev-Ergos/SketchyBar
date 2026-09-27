@@ -107,6 +107,11 @@ target_link_libraries(display_reconcile_tests PRIVATE "-framework CoreFoundation
 
 sketchybar_test(bar_level_tests tests/bar/level.c)
 
+# The Mach receive callback runs on a private port instead of the bootstrap
+# port, with a recording handler.
+sketchybar_test(mach_server_tests tests/mach/server.c ${SRC}/mach.c)
+target_link_libraries(mach_server_tests PRIVATE "-framework CoreFoundation")
+
 # libFuzzer targets for the message protocol, see docs/testing.md. They need a
 # clang that ships libFuzzer, which Apple's does not. Each also runs as a short
 # CTest test, writing new inputs to the build directory.
