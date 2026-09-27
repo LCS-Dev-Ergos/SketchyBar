@@ -112,6 +112,12 @@ sketchybar_test(bar_level_tests tests/bar/level.c)
 sketchybar_test(mach_server_tests tests/mach/server.c ${SRC}/mach.c)
 target_link_libraries(mach_server_tests PRIVATE "-framework CoreFoundation")
 
+# Event sends to a full queue time out; without the timeout the test hangs
+# until CTest stops it.
+sketchybar_test(mach_send_tests tests/mach/send.c ${SRC}/mach.c)
+target_link_libraries(mach_send_tests PRIVATE "-framework CoreFoundation")
+set_tests_properties(mach_send_tests PROPERTIES TIMEOUT 20)
+
 # libFuzzer targets for the message protocol, see docs/testing.md. They need a
 # clang that ships libFuzzer, which Apple's does not. Each also runs as a short
 # CTest test, writing new inputs to the build directory.

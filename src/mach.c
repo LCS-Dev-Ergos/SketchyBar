@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <CoreFoundation/CoreFoundation.h>
 
+#define MACH_EVENT_SEND_TIMEOUT_MS 100
+
 mach_port_t mach_get_bs_port(char* bs_name) {
   mach_port_name_t task = mach_task_self();
 
@@ -94,13 +96,23 @@ char* mach_send_message(mach_port_t port, char* message, uint32_t len, bool awai
   msg.descriptor.deallocate = false;
   msg.descriptor.type = MACH_MSG_OOL_DESCRIPTOR;
 
-  mach_msg(&msg.header,
-           MACH_SEND_MSG,
-           sizeof(struct mach_message),
-           0,
-           MACH_PORT_NULL,
-           MACH_MSG_TIMEOUT_NONE,
-           MACH_PORT_NULL             );
+  // The daemon sends events and replies without awaiting a response. A
+  // receiver that stops reading, such as a Lua process waiting on the daemon
+  // itself, must not block the main thread for good (upstream #794).
+  mach_msg_return_t result = mach_msg(&msg.header,
+                                      await_response
+                                      ? MACH_SEND_MSG
+                                      : MACH_SEND_MSG | MACH_SEND_TIMEOUT,
+                                      sizeof(struct mach_message),
+                                      0,
+                                      MACH_PORT_NULL,
+                                      await_response
+                                      ? MACH_MSG_TIMEOUT_NONE
+                                      : MACH_EVENT_SEND_TIMEOUT_MS,
+                                      MACH_PORT_NULL                     );
+
+  // A message that timed out returns to the sender as if received.
+  if (result == MACH_SEND_TIMED_OUT) mach_msg_destroy(&msg.header);
 
   if (await_response) {
     struct mach_buffer buffer = { 0 };
