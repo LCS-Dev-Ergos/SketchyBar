@@ -26,7 +26,9 @@ OBJ  = $(patsubst %, $(ODIR)/%, $(_OBJ))
 
 .PHONY: all clean arm x86 profile leak universal
 
-all: clean universal
+all:
+	$(MAKE) clean
+	$(MAKE) universal
 
 leak: CFLAGS=-std=c99 -Wall -g
 leak: clean arm64

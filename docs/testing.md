@@ -13,7 +13,8 @@ ctest --preset debug
 (`-O3 -ffast-math`, assertions kept). Configure with
 `-DSKETCHYBAR_LINK_COMPILE_COMMANDS=OFF` to leave the editor's root
 `compile_commands.json` symlink alone. The upstream `makefile` still builds
-the same sources into `bin/`.
+the same sources into `bin/`. Its default target runs cleanup before the
+universal build, including when invoked with `make -j`.
 
 The CMake binary is universal like the makefile's, but both architectures
 target macOS 11; the makefile targets 10.13 for x86_64. The sanitizer and
