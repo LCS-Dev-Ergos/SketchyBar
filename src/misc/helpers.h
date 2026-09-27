@@ -17,6 +17,10 @@
 
 #define MAXLEN 512
 
+// Numbers are parsed from a copy on the main thread's stack; a token can be as
+// long as the message, a number never needs more.
+#define NUMBER_TOKEN_SIZE 64
+
 extern int g_connection;
 
 struct signal_args {
@@ -237,23 +241,26 @@ static inline char *token_to_string(struct token token) {
 }
 
 static inline uint32_t token_to_uint32t(struct token token) {
-  char buffer[token.length + 1];
-  memcpy(buffer, token.text, token.length);
-  buffer[token.length] = '\0';
+  char buffer[NUMBER_TOKEN_SIZE];
+  uint32_t length = min(token.length, NUMBER_TOKEN_SIZE - 1);
+  memcpy(buffer, token.text, length);
+  buffer[length] = '\0';
   return strtoul(buffer, NULL, 0);
 }
 
 static inline int token_to_int(struct token token) {
-  char buffer[token.length + 1];
-  memcpy(buffer, token.text, token.length);
-  buffer[token.length] = '\0';
+  char buffer[NUMBER_TOKEN_SIZE];
+  uint32_t length = min(token.length, NUMBER_TOKEN_SIZE - 1);
+  memcpy(buffer, token.text, length);
+  buffer[length] = '\0';
   return (int) strtol(buffer, NULL, 0);
 }
 
 static inline float token_to_float(struct token token) {
-  char buffer[token.length + 1];
-  memcpy(buffer, token.text, token.length);
-  buffer[token.length] = '\0';
+  char buffer[NUMBER_TOKEN_SIZE];
+  uint32_t length = min(token.length, NUMBER_TOKEN_SIZE - 1);
+  memcpy(buffer, token.text, length);
+  buffer[length] = '\0';
   return strtof(buffer, NULL);
 }
 

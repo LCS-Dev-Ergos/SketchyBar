@@ -46,6 +46,15 @@ void custom_events_append(struct custom_events* custom_events, char* name, char*
     if (notification) free(notification);
     return; 
   }
+
+  // Subscriptions are bits of a 64-bit mask.
+  if (custom_events->count >= 64) {
+    printf("[!] Event: '%s' exceeds the limit of 64 events\n", name);
+    if (name) free(name);
+    if (notification) free(notification);
+    return;
+  }
+
   custom_events->count++;
   custom_events->events = (struct custom_event**) realloc(
                           custom_events->events,

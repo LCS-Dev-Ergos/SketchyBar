@@ -138,6 +138,7 @@ function(sketchybar_message_test name source)
 endfunction()
 
 sketchybar_message_test(message_animation_tests tests/message/animation.c)
+sketchybar_message_test(message_input_tests tests/message/inputs.c)
 
 # libFuzzer targets for the message protocol, see docs/testing.md. They need a
 # clang that ships libFuzzer, which Apple's does not. Each also runs as a short

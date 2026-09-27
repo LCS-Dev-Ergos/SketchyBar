@@ -14,18 +14,19 @@ void graph_init(struct graph* graph) {
 }
 
 void graph_setup(struct graph* graph, uint32_t width) {
-  graph->width = width;
-  graph->y = malloc(sizeof(float) * width);
-  memset(graph->y, 0, sizeof(float) * width);
+  // A width that cannot be allocated leaves an empty graph.
+  graph->y = calloc(width, sizeof(float));
+  graph->width = graph->y ? width : 0;
 }
 
 float graph_get_y(struct graph* graph, uint32_t i) {
-  if (!graph->enabled) return 0.f;
+  if (!graph->enabled || !graph->width) return 0.f;
   return graph->y[ (graph->cursor + i)%graph->width ];
 }
 
 void graph_push_back(struct graph* graph, float y) {
-  if (!graph->enabled) return;
+  // A graph of width 0 has no sample to write.
+  if (!graph->enabled || !graph->width) return;
   graph->y[graph->cursor] = y;
 
   ++graph->cursor;

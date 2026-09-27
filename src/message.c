@@ -1,4 +1,5 @@
 #include "message.h"
+#include "mask.h"
 #include "app_windows.h"
 #include "bar_manager.h"
 #include "misc/defines.h"
@@ -424,7 +425,7 @@ static bool handle_domain_bar(FILE *rsp, struct token domain, char *message) {
           display_pattern = DISPLAY_MAIN_PATTERN;
         }
         else {
-          display_pattern |= 1 << (strtoul(list[i], NULL, 0) - 1);
+          display_pattern |= mask_bit(strtoul(list[i], NULL, 0) - 1);
         }
       }
       free(list);
@@ -571,8 +572,10 @@ static void handle_domain_move(FILE* rsp, struct token domain, char* message) {
 }
 
 static void handle_domain_order(FILE* rsp, struct token domain, char* message) {
-  struct bar_item* ordering[g_bar_manager.bar_item_count];
-  memset(ordering, 0, sizeof(struct bar_item*)*g_bar_manager.bar_item_count);
+  // An array of length 0 is undefined, and a --reorder without items only
+  // reports the names it cannot find.
+  struct bar_item* ordering[max(g_bar_manager.bar_item_count, 1)];
+  memset(ordering, 0, sizeof(ordering));
 
   uint32_t count = 0;
   struct token name = get_token(&message);
@@ -583,8 +586,19 @@ static void handle_domain_order(FILE* rsp, struct token domain, char* message) {
       name = get_token(&message);
       continue;
     }
-    ordering[count] = g_bar_manager.bar_items[index];
-    count++;
+
+    // An item named twice keeps its first position; the list holds each
+    // item once, so it cannot outgrow the item count.
+    struct bar_item* bar_item = g_bar_manager.bar_items[index];
+    bool listed = false;
+    for (uint32_t i = 0; i < count; i++) {
+      if (ordering[i] == bar_item) listed = true;
+    }
+
+    if (!listed) {
+      ordering[count] = bar_item;
+      count++;
+    }
 
     name = get_token(&message);
   }

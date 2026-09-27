@@ -4,6 +4,7 @@
 #include "volume.h"
 #include "power.h"
 #include "media.h"
+#include "mask.h"
 #include "app_windows.h"
 #include "window.h"
 
@@ -97,11 +98,11 @@ bool bar_item_is_shown(struct bar_item* bar_item) {
 }
 
 void bar_item_append_associated_bar(struct bar_item* bar_item, uint32_t adid) {
-  bar_item->associated_bar |= (1 << (adid - 1));
+  bar_item->associated_bar |= mask_bit(adid - 1);
 }
 
 void bar_item_remove_associated_bar(struct bar_item* bar_item, uint32_t adid) {
-  bar_item->associated_bar &= ~(1 << (adid - 1)); 
+  bar_item->associated_bar &= ~mask_bit(adid - 1);
 }
 
 void bar_item_reset_associated_bar(struct bar_item* bar_item) {
@@ -1148,9 +1149,9 @@ void bar_item_parse_set_message(struct bar_item* bar_item, char* message, FILE* 
     if (list && count > 0) {
       for (int i = 0; i < count; i++) {
         bar_item_append_associated_space(bar_item,
-                                         1 << strtoul(list[i],
-                                                      NULL,
-                                                      0       ));
+                                         mask_bit(strtoul(list[i],
+                                                       NULL,
+                                                       0       )));
       }
       free(list);
     }
@@ -1170,9 +1171,9 @@ void bar_item_parse_set_message(struct bar_item* bar_item, char* message, FILE* 
         }
         else {
           bar_item_append_associated_display(bar_item,
-                                             1 << strtoul(list[i],
-                                                          NULL,
-                                                          0       ));
+                                             mask_bit(strtoul(list[i],
+                                                           NULL,
+                                                           0       )));
         }
       }
       free(list);
