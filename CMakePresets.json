@@ -39,7 +39,8 @@
       "inherits": "base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "SKETCHYBAR_SANITIZE": "address"
+        "SKETCHYBAR_SANITIZE": "address",
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "14.0"
       }
     },
     {
@@ -48,7 +49,8 @@
       "inherits": "base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "SKETCHYBAR_SANITIZE": "thread"
+        "SKETCHYBAR_SANITIZE": "thread",
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "14.0"
       }
     },
     {
