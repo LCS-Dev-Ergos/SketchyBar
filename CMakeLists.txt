@@ -121,7 +121,7 @@ set(SKETCHYBAR_FUZZ_SECONDS 30 CACHE STRING "Seconds each fuzz target runs as a 
 if(SKETCHYBAR_FUZZ)
     set(SKETCHYBAR_FUZZ_FLAGS -fsanitize=fuzzer,address,undefined -fno-sanitize-recover=undefined)
 
-    foreach(target tokens)
+    foreach(target tokens message)
         add_executable(fuzz_${target} tests/fuzz/${target}.c)
         target_include_directories(fuzz_${target} PRIVATE ${SRC})
         set_target_properties(fuzz_${target} PROPERTIES
