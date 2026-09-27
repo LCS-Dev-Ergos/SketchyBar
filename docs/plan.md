@@ -13,8 +13,8 @@ checks and exit criterion. Findings are referenced by their ids in the
 | 1. Dotfiles patches as commits | Done on `dev` |
 | 2. CMake and presets | Done on `dev` |
 | 3. VS Code workspace | Done on `dev` |
-| 4. CI and releases | CI done; first release and Dotfiles package in progress |
-| 5. Targeted hardening | Not started |
+| 4. CI and releases | CI done; the first release tag and the Dotfiles package wait for the user |
+| 5. Targeted hardening | Done, except the items listed in its section |
 | 6. Live baseline | Not started; needs the user's agreement |
 | 7. Restructuring | Not started |
 
@@ -82,6 +82,23 @@ CTest from their first commit.
   regression test that fails before and passes after the fix.
 - Risks: changed semantics, such as messages dropped under load.
 - Exit: fuzzers and sanitizers clean; analyzer below the baseline.
+- Done: S1 (`fix(mach)`, with `fuzz_message`), S3 (`fix(message)`), S4
+  (`fix(script)`), R1 on the daemon side (`fix(mach)`: event and reply sends
+  time out after 100 ms), R3 (`fix(display)`) and the verified R5 findings
+  (`fix(items)`; `fix(animation)` for removal during animations, which the
+  message harness confirmed). The analyzer baseline fell from 52 to 19
+  findings.
+- Deviations: scripts still start with `vfork`, because the child must set
+  the alarm that SbarLua and long-running helpers cancel with `alarm(0)`,
+  which `posix_spawn` cannot do; the child now only sets the alarm and execs.
+  SbarLua is unchanged: the daemon's send timeout already breaks the
+  deadlock of #794.
+- Open: windows embedded in bars and popups may still be freed before a
+  deferred frame update (R5, plausible, needs WindowServer to confirm); space
+  indices of 32 and more are still shifted in `bar.c` and `bar_manager.c`
+  (phase 7); S2 is the scripting model (phase 7); fuzzing the message domains
+  through the harness needs `fork_exec` and bootstrap lookups stubbed first,
+  so that fuzzed commands cannot run scripts or reach the running bar.
 
 ## 6. Live baseline
 
