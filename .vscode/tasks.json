@@ -1,0 +1,98 @@
+{
+  //===-------------------------------------------------------------------------===//
+  // Build tasks for the SketchyBar fork
+  //
+  // CMake tasks use the presets in CMakePresets.json; each preset builds into
+  // build/<preset>/ and points the root compile_commands.json at itself.
+  // The makefile task reproduces the upstream build in bin/ for comparison.
+  // The service tasks stop and start the Home Manager agent around the launch
+  // configurations in launch.json.
+  //
+  // Inputs:
+  //   ${input:preset} - Debug, Release, ASan/UBSan or TSan/UBSan preset
+  //===-------------------------------------------------------------------------===//
+  "version": "2.0.0",
+
+  "tasks": [
+    //===----- CMAKE -----------------------------------------------------------===//
+    {
+      "label": "CMake: Configure",
+      "type": "shell",
+      "command": "cmake",
+      "args": ["--preset", "${input:preset}"],
+      "problemMatcher": [],
+      "detail": "Configure the selected preset and relink compile_commands.json"
+    },
+    {
+      "label": "CMake: Build",
+      "type": "shell",
+      "command": "cmake --preset ${input:preset} > /dev/null && cmake --build --preset ${input:preset}",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": ["$gcc"],
+      "detail": "Configure if needed and build sketchybar, its tests and tools"
+    },
+    {
+      "label": "CMake: Clean & Reconfigure",
+      "type": "shell",
+      "command": "rm -rf build/${input:preset} && cmake --preset ${input:preset}",
+      "problemMatcher": [],
+      "detail": "Remove the preset build directory and configure it again"
+    },
+
+    {
+      "label": "CTest: Run",
+      "type": "shell",
+      "command": "cmake --build --preset ${input:preset} && ctest --preset ${input:preset}",
+      "group": "test",
+      "problemMatcher": [],
+      "detail": "Build and run the unit tests, which leave the running bar alone"
+    },
+
+    //===----- UPSTREAM --------------------------------------------------------===//
+    {
+      "label": "Make: Build (upstream makefile)",
+      "type": "shell",
+      "command": "make",
+      "problemMatcher": ["$gcc"],
+      "detail": "Universal optimised build with the upstream makefile into bin/sketchybar"
+    },
+
+    //===----- RUN -------------------------------------------------------------===//
+    {
+      "label": "Run: sketchybar --version",
+      "type": "shell",
+      "command": "build/${input:preset}/bin/sketchybar",
+      "args": ["--version"],
+      "problemMatcher": [],
+      "detail": "Smoke test of the selected preset build"
+    },
+
+    //===----- SERVICE ---------------------------------------------------------===//
+    {
+      "label": "sketchybar: Stop service",
+      "type": "shell",
+      "command": "launchctl bootout \"gui/$(id -u)/org.nix-community.home.sketchybar\" 2>/dev/null || true",
+      "problemMatcher": [],
+      "presentation": { "reveal": "silent" },
+      "detail": "Stop the Home Manager agent so a debug build can take over"
+    },
+    {
+      "label": "sketchybar: Start service",
+      "type": "shell",
+      "command": "launchctl bootstrap \"gui/$(id -u)\" \"$HOME/Library/LaunchAgents/org.nix-community.home.sketchybar.plist\" 2>/dev/null || launchctl kickstart \"gui/$(id -u)/org.nix-community.home.sketchybar\"",
+      "problemMatcher": [],
+      "presentation": { "reveal": "silent" },
+      "detail": "Start the Home Manager agent again after a debug session"
+    }
+  ],
+
+  "inputs": [
+    {
+      "id": "preset",
+      "type": "pickString",
+      "description": "CMake preset",
+      "options": ["debug", "release", "sanitize", "thread-sanitize"],
+      "default": "debug"
+    }
+  ]
+}

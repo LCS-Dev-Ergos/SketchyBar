@@ -1,0 +1,81 @@
+{
+  //===-------------------------------------------------------------------------===//
+  // Debug configurations for the SketchyBar fork (CodeLLDB)
+  //
+  // Launching:
+  //   The launch configurations stop the Home Manager agent first (task
+  //   "sketchybar: Stop service") so two bars do not run at once, and start it
+  //   again when the session ends. The build reads the configuration in
+  //   ~/.config/sketchybar, like the service. "program" follows the target and
+  //   preset selected in CMake Tools, which builds it first
+  //   (cmake.buildBeforeRun).
+  //
+  // Tests:
+  //   "Debug selected test target" runs the CMake Tools launch target, such as
+  //   display_reconcile_tests, against stubs. It leaves the running bar alone.
+  //
+  // Attaching:
+  //   Attaching to the running bar needs no restart; the bar and every script
+  //   waiting on it freeze while it is stopped.
+  //===-------------------------------------------------------------------------===//
+  "version": "0.2.0",
+
+  "configurations": [
+    //===----- LAUNCH ----------------------------------------------------------===//
+    {
+      "name": "Launch sketchybar",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${command:cmake.launchTargetPath}",
+      "cwd": "${workspaceFolder}",
+      "terminal": "integrated",
+      "stopOnEntry": false,
+      "preLaunchTask": "sketchybar: Stop service",
+      "postDebugTask": "sketchybar: Start service"
+    },
+    {
+      "name": "Launch sketchybar + ASan/UBSan",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${command:cmake.launchTargetPath}",
+      "cwd": "${workspaceFolder}",
+      "terminal": "integrated",
+      "stopOnEntry": false,
+      "preLaunchTask": "sketchybar: Stop service",
+      "postDebugTask": "sketchybar: Start service",
+      "envFile": "${workspaceFolder}/.vscode/sanitizers.env"
+    },
+    {
+      "name": "Launch sketchybar + TSan/UBSan",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${command:cmake.launchTargetPath}",
+      "cwd": "${workspaceFolder}",
+      "terminal": "integrated",
+      "stopOnEntry": false,
+      "preLaunchTask": "sketchybar: Stop service",
+      "postDebugTask": "sketchybar: Start service",
+      "envFile": "${workspaceFolder}/.vscode/thread_sanitizer.env"
+    },
+
+    //===----- TESTS -----------------------------------------------------------===//
+    {
+      "name": "Debug selected test target",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${command:cmake.launchTargetPath}",
+      "cwd": "${workspaceFolder}",
+      "terminal": "console",
+      "stopOnEntry": false
+    },
+
+    //===----- ATTACH ----------------------------------------------------------===//
+    {
+      "name": "Attach to running sketchybar",
+      "type": "lldb",
+      "request": "attach",
+      "program": "sketchybar",
+      "waitFor": false
+    }
+  ]
+}

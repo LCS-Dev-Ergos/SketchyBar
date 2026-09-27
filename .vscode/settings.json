@@ -1,0 +1,70 @@
+{
+  //===---------------- VS CODE SETTINGS FOR THE SKETCHYBAR FORK ---------------===//
+
+  //===----- Editor Configuration ----------------===//
+  // SketchyBar uses 2-space indentation. Formatting on save stays off:
+  // reformatting upstream files would turn every upstream sync into a merge
+  // conflict.
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+  "editor.rulers": [80],
+  "editor.formatOnSave": false,
+  "editor.trimAutoWhitespace": true,
+  "files.trimTrailingWhitespace": false,
+  "files.insertFinalNewline": true,
+
+  //===----- C/C++ Configuration -----------------===//
+  // clangd is the only language server; cpptools would duplicate diagnostics.
+  "C_Cpp.intelliSenseEngine": "disabled",
+  "C_Cpp.autocomplete": "disabled",
+  "C_Cpp.errorSquiggles": "disabled",
+  "C_Cpp.configurationWarnings": "disabled",
+
+  //===----- Clangd Configuration ----------------===//
+  // compile_commands.json in the workspace root links to the last configured
+  // preset (see SKETCHYBAR_LINK_COMPILE_COMMANDS in CMakeLists.txt). Headers
+  // and files outside the database fall back to the upstream C dialect.
+  "clangd.compilationDatabasePath": "${workspaceFolder}",
+  "clangd.fallbackFlags": ["-xobjective-c", "-std=c99", "-I${workspaceFolder}/src"],
+  "clangd.onConfigChanged": "restart",
+  "clangd.arguments": [
+    "--completion-style=detailed",
+    "--header-insertion=never",
+    "--background-index",
+    "--clang-tidy",
+    "-j=8"
+  ],
+  "clangd.detectExtensionConflicts": true,
+
+  //===----- CMake Tools Configuration -----------===//
+  "cmake.useCMakePresets": "always",
+  "cmake.configureOnOpen": true,
+  "cmake.buildBeforeRun": true,
+
+  //===----- Terminal Configuration --------------===//
+  "terminal.integrated.cwd": "${workspaceFolder}",
+
+  //===----- Files and Search --------------------===//
+  "files.exclude": {
+    "**/.DS_Store": true
+  },
+  "search.exclude": {
+    "build": true,
+    "bin": true
+  },
+
+  //===----- File Associations -------------------===//
+  "files.associations": {
+    "*.m": "objective-c",
+    "*.h": "c",
+    "*.c": "c",
+    "sketchybarrc": "shellscript"
+  },
+
+  //===----- Debug Configuration -----------------===//
+  "debug.internalConsoleOptions": "openOnSessionStart",
+  // SketchyBar is C: evaluate watch and console expressions with LLDB's own C
+  // evaluator, so globals such as g_bar_manager.bar_count work.
+  "lldb.launch.expressions": "native"
+}
