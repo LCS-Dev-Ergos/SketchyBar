@@ -146,8 +146,29 @@ void mach_message_callback(CFMachPortRef port, void* message, CFIndex size, void
 
   struct mach_buffer buffer;
   buffer.message = *(struct mach_message*)message;
+  char* terminated = NULL;
+  if (!mach_message_has_empty_token(&buffer.message)) {
+    size_t length = buffer.message.descriptor.size;
+    if (length == UINT32_MAX) {
+      mach_msg_destroy(message);
+      return;
+    }
+
+    terminated = malloc(length + 1);
+    if (!terminated) {
+      mach_msg_destroy(message);
+      return;
+    }
+
+    memcpy(terminated, buffer.message.descriptor.address, length);
+    terminated[length] = '\0';
+    buffer.message.descriptor.address = terminated;
+    buffer.message.descriptor.size++;
+  }
+
   mach_server->handler(&buffer);
-  mach_msg_destroy(&buffer.message.header);
+  free(terminated);
+  mach_msg_destroy(message);
 }
 
 #pragma clang diagnostic push

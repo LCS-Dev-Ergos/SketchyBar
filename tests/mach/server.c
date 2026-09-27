@@ -14,10 +14,17 @@ void mach_message_callback(CFMachPortRef port, void* message, CFIndex size, void
 
 static int handled;
 static char command[64];
+static bool has_empty_token;
+static size_t received_size;
 
 static MACH_HANDLER(record) {
   handled++;
   strlcpy(command, message->message.descriptor.address, sizeof(command));
+  received_size = message->message.descriptor.size;
+  const char* data = message->message.descriptor.address;
+  has_empty_token = received_size >= 2
+                    && data[received_size - 2] == '\0'
+                    && data[received_size - 1] == '\0';
 }
 
 static void run_until_handled(int count) {
@@ -57,6 +64,8 @@ int main(void) {
   assert(mach_message_valid(&message, sizeof(message)));
   assert(!mach_message_valid(&message, sizeof(message) - 1));
   message.descriptor.size = 4;
+  assert(mach_message_valid(&message, sizeof(message)));
+  message.descriptor.size = 3;
   assert(!mach_message_valid(&message, sizeof(message)));
   message.descriptor.size = 0;
   assert(!mach_message_valid(&message, sizeof(message)));
@@ -101,6 +110,14 @@ int main(void) {
   mach_send_message(port, set, sizeof(set) - 1, false);
   run_until_handled(2);
   assert(handled == 2 && strcmp(command, "--set") == 0);
+
+  // The native event providers send one final NUL, without an empty token.
+  // The receiver must add that token before the tokenizer reads the command.
+  static char provider[] = "--trigger\0cpu_update\0total_load=42";
+  mach_send_message(port, provider, sizeof(provider), false);
+  run_until_handled(3);
+  assert(handled == 3 && strcmp(command, "--trigger") == 0);
+  assert(received_size == sizeof(provider) + 1 && has_empty_token);
 
   CFRelease(source);
   CFRelease(cf_port);
