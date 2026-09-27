@@ -209,8 +209,8 @@ many synchronous SkyLight replies. The next development change keeps the
 per-space event registration for individual window changes but registers once
 after a full scan. A focused 11-space regression fails on the previous code
 and passes with this change. Release, ASan/UBSan and TSan/UBSan suites each
-pass 19/19. This change is not in the active release; a live latency gain has
-not been measured.
+pass 19/19. This change is in `lcs.4`; its effect on Desktop navigation has
+not yet been measured against the `lcs.3` baseline.
 The individual reload investigation follows below.
 
 ## Full reload diagnosis and local fix
@@ -251,6 +251,26 @@ WindowServer reached the original window count and order in 0.554-0.559 s,
 at the same poll as the API's 126-item response. A ten-second daemon sample
 spanning another 0.656 s reload had no long backing-store callback branch.
 These results measure configuration and window-layout readiness, not rendered
-pixel completion, nonzero-blur rendering, or the next
-signed release on this host. `tools/reload_benchmark.py` reproduces the
-single-reload timing gate against a configured GUI service.
+pixel completion or nonzero-blur rendering. `tools/reload_benchmark.py`
+reproduces the single-reload timing gate against a configured GUI service.
+
+## Signed lcs.4 acceptance
+
+On 2026-09-27, the `dev` CI passed the universal build, CTest, makefile,
+ASan/UBSan, TSan/UBSan, 60-second runs of all three fuzz targets and the
+analyzer at `0e5e784`. The annotated `v2.24.0-lcs.4` tag passed its signed
+build, tests and packaging job. The published archive's SHA-256 is
+`b5bc1962e4ee171d203c8ed52987228ee1a09c5f2324bb25704068ccf60f4f73`;
+the extracted binary passed strict code-signature verification with authority
+`sketchybar-lcs-dev`, and the Nix-installed binary is byte-identical.
+
+After the Darwin activation from Dotfiles commit `71b15f7`, six consecutive
+reloads of the signed service returned to 126 items in 0.682, 0.569, 1.347,
+0.798, 0.616 and 0.578 s (median 0.649 s). One Lua process and one each CPU,
+Brew and network provider remained. The WindowServer check found 58 visible
+item windows, none covered by the bar background. A temporary bar
+`blur_radius=12` change answered queries in 0.009-0.011 s and preserved window
+order; the original value 0 was restored. One query was empty in an earlier
+immediate blur probe, without a daemon exit; the repeated probe was stable.
+These checks do not establish rendered-pixel completion, the appearance of
+nonzero blur, Desktop navigation latency, or full-system sleep recovery.

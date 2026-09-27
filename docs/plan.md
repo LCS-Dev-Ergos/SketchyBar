@@ -13,9 +13,9 @@ checks and exit criterion. Findings are referenced by their ids in the
 | 1. Dotfiles patches as commits | Done on `dev` |
 | 2. CMake and presets | Done on `dev` |
 | 3. VS Code workspace | Done on `dev` |
-| 4. CI and releases | Done: signed `v2.24.0-lcs.3` is active through Dotfiles |
+| 4. CI and releases | Done: signed `v2.24.0-lcs.4` is active through Dotfiles |
 | 5. Targeted hardening | Done, except the items listed in its section |
-| 6. Live baseline | In progress: `lcs.3` Desktop, CPU and burst reload checked; full system sleep unverified |
+| 6. Live baseline | In progress: `lcs.3` Desktop and CPU, `lcs.4` reload checked; full system sleep unverified |
 | 7. Restructuring | Not started |
 | 8. Repository maintenance | Planned after safety, robustness and performance work |
 
@@ -136,15 +136,16 @@ the phase 6 baseline:
   current display link;
 - authentication of message senders;
 - the live `lcs.3` burst-reload check found no persistent duplicate Lua or
-  native providers. The local reload change now reuses physical windows and
-  delays the config barrier until its message completes; six matched local
-  reloads took 0.509-0.564 s instead of the pre-fix 1.608-7.190 s. Verify
-  this after a signed release and check visible completion and nonzero blur.
+  native providers. The `lcs.4` release reuses physical windows and delays
+  the config barrier until its message completes; six installed-release
+  reloads returned 126 items in 0.569-1.347 s, with stable providers and
+  window order. A temporary nonzero blur setting answered queries and kept
+  window order, but rendered pixels and blur appearance remain unchecked.
   A Desktop profile found repeated registration of the same window
-  notifications after each space scan. The development change batches that
-  registration once per full scan, with an 11-space regression; measure it
-  on the next installed release. If later Desktop notifications still repeat
-  the full scan, coalesce them with a separate behavioral check.
+  notifications after each space scan. `lcs.4` batches registration once
+  per full scan, with an 11-space regression; measure Desktop latency against
+  the `lcs.3` baseline. If later Desktop notifications still repeat the full
+  scan, coalesce them with a separate behavioral check.
 
 ## 8. Repository maintenance
 
