@@ -80,6 +80,33 @@ enable_testing()
 add_test(NAME version COMMAND sketchybar --version)
 set_tests_properties(version PROPERTIES PASS_REGULAR_EXPRESSION "^sketchybar-v[0-9]+\\.[0-9]+\\.[0-9]+")
 
+# libFuzzer targets for the message protocol, see docs/testing.md. They need a
+# clang that ships libFuzzer, which Apple's does not. Each also runs as a short
+# CTest test, writing new inputs to the build directory.
+option(SKETCHYBAR_FUZZ "Build the libFuzzer targets and run them as tests" OFF)
+set(SKETCHYBAR_FUZZ_SECONDS 30 CACHE STRING "Seconds each fuzz target runs as a test")
+
+if(SKETCHYBAR_FUZZ)
+    set(SKETCHYBAR_FUZZ_FLAGS -fsanitize=fuzzer,address,undefined -fno-sanitize-recover=undefined)
+
+    foreach(target tokens)
+        add_executable(fuzz_${target} tests/fuzz/${target}.c)
+        target_include_directories(fuzz_${target} PRIVATE ${SRC})
+        set_target_properties(fuzz_${target} PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/fuzz
+            C_STANDARD 99 C_EXTENSIONS OFF)
+        target_compile_options(fuzz_${target} PRIVATE -g -UNDEBUG ${SKETCHYBAR_FUZZ_FLAGS})
+        target_link_options(fuzz_${target} PRIVATE ${SKETCHYBAR_FUZZ_FLAGS})
+
+        set(corpus ${CMAKE_BINARY_DIR}/fuzz/corpus/${target})
+        file(MAKE_DIRECTORY ${corpus})
+        add_test(NAME fuzz_${target}
+            COMMAND fuzz_${target} -max_total_time=${SKETCHYBAR_FUZZ_SECONDS} -timeout=10 -print_final_stats=1
+                -artifact_prefix=${CMAKE_BINARY_DIR}/fuzz/
+                ${corpus} ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/corpus/${target})
+    endforeach()
+endif()
+
 # Editors that only look for compile_commands.json in the workspace root follow
 # the most recently configured build directory.
 if(SKETCHYBAR_LINK_COMPILE_COMMANDS AND NOT CMAKE_BINARY_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
