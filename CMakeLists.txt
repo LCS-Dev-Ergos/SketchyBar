@@ -105,6 +105,8 @@ target_compile_definitions(display_reconcile_tests PRIVATE
     "DISPLAY_WAKE_SETTLE_NS=(300 * NSEC_PER_MSEC)")
 target_link_libraries(display_reconcile_tests PRIVATE "-framework CoreFoundation" "-framework CoreGraphics")
 
+sketchybar_test(bar_level_tests tests/bar/level.c)
+
 # libFuzzer targets for the message protocol, see docs/testing.md. They need a
 # clang that ships libFuzzer, which Apple's does not. Each also runs as a short
 # CTest test, writing new inputs to the build directory.
@@ -130,6 +132,18 @@ if(SKETCHYBAR_FUZZ)
                 -artifact_prefix=${CMAKE_BINARY_DIR}/fuzz/
                 ${corpus} ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/corpus/${target})
     endforeach()
+endif()
+
+# Tools that inspect the running bar, see docs/testing.md. They are never run
+# as tests.
+option(SKETCHYBAR_BUILD_TOOLS "Build the tools that inspect the running bar" ON)
+
+if(SKETCHYBAR_BUILD_TOOLS)
+    add_executable(window_order tools/window_order.m)
+    set_target_properties(window_order PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tools)
+    target_compile_options(window_order PRIVATE -Wall -fobjc-arc)
+    target_link_libraries(window_order PRIVATE "-framework Foundation" "-framework CoreGraphics")
 endif()
 
 # Editors that only look for compile_commands.json in the workspace root follow
