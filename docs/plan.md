@@ -136,13 +136,15 @@ the phase 6 baseline:
   current display link;
 - authentication of message senders;
 - the live `lcs.3` burst-reload check found no persistent duplicate Lua or
-  native providers. The intermittent single-reload QuartzCore cost remains;
-  compare WindowServer diagnostics before changing window creation or
-  rendering. A profile of Desktop changes found repeated registration of the
-  same window notifications after each space scan. The development change
-  batches that registration once per full scan, with an 11-space regression;
-  measure it on the next installed release. If later Desktop notifications
-  still repeat the full scan, coalesce them with a separate behavioral check.
+  native providers. The local reload change now reuses physical windows and
+  delays the config barrier until its message completes; six matched local
+  reloads took 0.509-0.564 s instead of the pre-fix 1.608-7.190 s. Verify
+  this after a signed release and check visible completion and nonzero blur.
+  A Desktop profile found repeated registration of the same window
+  notifications after each space scan. The development change batches that
+  registration once per full scan, with an 11-space regression; measure it
+  on the next installed release. If later Desktop notifications still repeat
+  the full scan, coalesce them with a separate behavioral check.
 
 ## 8. Repository maintenance
 

@@ -3,6 +3,7 @@
 #include "misc/helpers.h"
 #include "surface.h"
 #include "layer.h"
+#include "window_reuse.h"
 #include <pthread.h>
 
 extern struct bar_manager g_bar_manager;
@@ -44,6 +45,11 @@ struct window* window_create() {
 }
 
 void window_destroy(struct window* window) {
+  if (windows_reuse_active()) {
+    window_close(window);
+    free(window);
+    return;
+  }
   if (--window->refc > 0) return;
   window_close(window);
   free(window);
@@ -65,38 +71,46 @@ void window_open(struct window* window, CGRect frame) {
   window->frame.size = frame.size;
   frame.origin = CGPointZero;
 
-  // Stays 0 when WindowServer refuses the window.
-  uint32_t id = 0;
-  CFTypeRef frame_region = window_create_region(window, frame);
-  CFTypeRef empty_region = CGRegionCreateEmptyRegion();
-  SLSNewWindowWithOpaqueShapeAndContext(g_connection,
-                                        kCGBackingStoreBuffered,
-                                        frame_region,
-                                        empty_region,
-                                        13 | (1 << 18),
-                                        &set_tags,
-                                        window->origin.x,
-                                        window->origin.y,
-                                        64,
-                                        &id,
-                                        NULL                    );
-  CFRelease(empty_region);
-  CFRelease(frame_region);
-
-  window->id = id;
+  bool reused_window = windows_reuse_take(window);
+  if (!reused_window) {
+    // Stays 0 when WindowServer refuses the window.
+    uint32_t id = 0;
+    CFTypeRef frame_region = window_create_region(window, frame);
+    CFTypeRef empty_region = CGRegionCreateEmptyRegion();
+    SLSNewWindowWithOpaqueShapeAndContext(g_connection,
+                                          kCGBackingStoreBuffered,
+                                          frame_region,
+                                          empty_region,
+                                          13 | (1 << 18),
+                                          &set_tags,
+                                          window->origin.x,
+                                          window->origin.y,
+                                          64,
+                                          &id,
+                                          NULL                    );
+    CFRelease(empty_region);
+    CFRelease(frame_region);
+    window->id = id;
+  }
 
   SLSSetWindowResolution(g_connection, window->id, 2.0f);
   SLSSetWindowTags(g_connection, window->id, &set_tags, 64);
   SLSClearWindowTags(g_connection, window->id, &clear_tags, 64);
   SLSSetWindowOpacity(g_connection, window->id, 0);
 
-  window->context = SLWindowContextCreate(g_connection, window->id, NULL);
-  window_clear_background(window);
-
-  CGContextSetInterpolationQuality(window->context, kCGInterpolationNone);
-  window->surface = surface_create(window);
-  window->needs_move = false;
-  window->needs_resize = false;
+  if (!reused_window) {
+    if (__builtin_available(macOS 26.0, *)) { }
+    else {
+      window->context = SLWindowContextCreate(g_connection, window->id, NULL);
+      window_clear_background(window);
+      if (window->context)
+        CGContextSetInterpolationQuality(window->context, kCGInterpolationNone);
+    }
+    window->surface = surface_create(window);
+  }
+  window->needs_move = reused_window;
+  window->needs_resize = reused_window;
+  if (reused_window) window_move(window, window->origin);
 
 
   if (g_bar_manager.sticky) {
@@ -309,6 +323,10 @@ void window_send_to_space(struct window* window, uint64_t dsid) {
 
 void window_close(struct window* window) {
   if (window->id) SLSOrderWindow(g_connection, window->id, 0, 0);
+  if (windows_reuse_store(window)) {
+    window_clear(window);
+    return;
+  }
   surface_destroy(window->surface);
   if (window->context) CGContextRelease(window->context);
   if (window->id) SLSReleaseWindow(g_connection, window->id);
@@ -349,6 +367,11 @@ void window_assign_mouse_tracking_area(struct window* window, CGRect rect) {
 }
 
 void window_set_blur_radius(struct window* window, uint32_t blur_radius) {
+  if (blur_radius && !window->context) {
+    window->context = SLWindowContextCreate(g_connection, window->id, NULL);
+    if (window->context)
+      CGContextSetInterpolationQuality(window->context, kCGInterpolationNone);
+  }
   SLSSetWindowBackgroundBlurRadius(g_connection, window->id, blur_radius);
   if (window->context) window_clear_background(window);
 }

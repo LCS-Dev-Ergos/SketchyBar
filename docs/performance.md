@@ -211,4 +211,46 @@ after a full scan. A focused 11-space regression fails on the previous code
 and passes with this change. Release, ASan/UBSan and TSan/UBSan suites each
 pass 19/19. This change is not in the active release; a live latency gain has
 not been measured.
-The slow individual reload still needs a separate WindowServer investigation.
+The individual reload investigation follows below.
+
+## Full reload diagnosis and local fix
+
+On 2026-09-27, with the same 126-item Nix configuration, six reloads of the
+local pre-fix build in a temporary Home Manager-style LaunchAgent took 5.985,
+5.876, 7.190, 7.119, 1.608 and 1.852 s. A signed `lcs.3` reload took 8.123 s
+in a matched daemon/Lua sample. Its main thread spent about 2.6 s in SkyLight
+backing-store callbacks and synchronous QuartzCore commits; Lua spent several
+seconds awaiting replies from the daemon. The command acknowledgement and
+bar queries stayed responsive. Removing the explicit CoreGraphics window
+context alone reduced peaks but still left a sampled 4.251 s reload with
+SkyLight backing-store callbacks. Changing the window backing-store type to
+nonretained crashed the temporary process and was discarded.
+
+The reload path destroyed and recreated 256 physical windows and surfaces.
+The first reuse experiment was ineffective because the config barrier ended
+at the first event-port registration, while the batched configuration message
+was still creating items: instrumentation counted 256 cached windows but only
+four reused. The final change ends the barrier on the next main-queue turn,
+after the current message, and reuses the physical windows during reload.
+It moves each recovered window to its initial physical position; otherwise
+four hidden items remained on screen despite their model origin being the
+off-screen parking point. On macOS 26 and later, a CoreGraphics window context
+is now created only when nonzero background blur needs it; visible content
+still uses each window's CoreAnimation surface. Earlier macOS versions keep
+their original context path.
+
+After the final changes, six consecutive reloads of the local Release build
+in the same temporary LaunchAgent took 0.533, 0.564, 0.551, 0.524, 0.541
+and 0.509 s to report 126 items. A separate three-request burst returned in
+1.130 s and left one Lua process and one each CPU, Brew and network provider.
+The WindowServer ordering check found 57 visible item windows before and after
+the sequential reloads, with none behind the bar background; the pre-fix
+build also had 57 before and after. The signed `lcs.3` LaunchAgent was restored
+after every comparison. Three further reloads that polled both the API and
+WindowServer reached the original window count and order in 0.554-0.559 s,
+at the same poll as the API's 126-item response. A ten-second daemon sample
+spanning another 0.656 s reload had no long backing-store callback branch.
+These results measure configuration and window-layout readiness, not rendered
+pixel completion, nonzero-blur rendering, or the next
+signed release on this host. `tools/reload_benchmark.py` reproduces the
+single-reload timing gate against a configured GUI service.

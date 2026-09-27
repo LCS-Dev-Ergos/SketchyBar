@@ -33,7 +33,7 @@ set(PRIVATE_FRAMEWORKS /System/Library/PrivateFrameworks)
 # The objects of the makefile, in the same order.
 set(SKETCHYBAR_SOURCES
     alias.c background.c bar_item.c custom_events.c event.c graph.c image.c
-    mouse.c shadow.c font.c text.c message.c bar.c color.c window.c
+    mouse.c shadow.c font.c text.c message.c bar.c color.c window.c window_reuse.c
     bar_manager.c display.c display_nsscreen.m group.c mach.c popup.c
     animation.c workspace.m volume.c slider.c power.c wifi.m media.m
     hotload.c app_windows.c layer.m surface.c context.c script.c
@@ -118,6 +118,10 @@ sketchybar_test(bar_level_tests tests/bar/level.c)
 sketchybar_test(window_deferred_tests tests/window/deferred.c)
 target_link_options(window_deferred_tests PRIVATE -F${PRIVATE_FRAMEWORKS})
 target_link_libraries(window_deferred_tests PRIVATE ${SKETCHYBAR_FRAMEWORKS})
+
+sketchybar_test(window_reuse_tests tests/window/reuse.c)
+target_link_options(window_reuse_tests PRIVATE -F${PRIVATE_FRAMEWORKS})
+target_link_libraries(window_reuse_tests PRIVATE ${SKETCHYBAR_FRAMEWORKS})
 
 # The Mach receive callback runs on a private port instead of the bootstrap
 # port, with a recording handler.

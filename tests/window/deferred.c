@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 #include "../../src/window.c"
+#include "../../src/window_reuse.c"
 
 struct bar_manager g_bar_manager;
 int g_connection;
@@ -75,6 +76,17 @@ int main(void) {
   window_schedule_update(heap_window, true);
   window_destroy(heap_window);
   deliver_action(3);
+  run_main_queue();
+
+  // Reload transfers resources immediately and cancels a pending callback.
+  heap_window = window_create();
+  window_schedule_update(heap_window, true);
+  struct window_deferred_update* update = heap_window->deferred_update;
+  windows_reuse_begin();
+  window_destroy(heap_window);
+  assert(update->window == NULL);
+  windows_reuse_end();
+  deliver_action(4);
   run_main_queue();
 
   puts("window deferred update: passed");

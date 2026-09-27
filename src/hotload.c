@@ -2,6 +2,7 @@
 #include "event.h"
 #include "hotload.h"
 #include "script.h"
+#include "window_reuse.h"
 #include <ApplicationServices/ApplicationServices.h>
 #include <dispatch/dispatch.h>
 #include <errno.h>
@@ -19,12 +20,14 @@ int64_t g_last_hotload = 0;
 
 static uint64_t g_reload_generation;
 static uint64_t g_config_generation;
+static uint64_t g_finish_scheduled_generation;
 static bool g_configuring;
 static bool g_reload_pending;
 static pid_t g_config_pid;
 
 static void config_finished(void) {
   if (!g_configuring) return;
+  windows_reuse_end();
   g_configuring = false;
   g_config_pid = 0;
   g_config_generation++;
@@ -117,6 +120,7 @@ void exec_config_file() {
 }
 
 static void reload_now(void) {
+  windows_reuse_begin();
   bar_manager_destroy(&g_bar_manager);
   bar_manager_init(&g_bar_manager);
   bar_manager_begin(&g_bar_manager);
@@ -137,7 +141,15 @@ void hotload_request(void) {
 }
 
 void hotload_config_registered(void) {
-  config_finished();
+  // The port is registered while the configuration message is still being
+  // parsed. Keep the reload barrier and reusable windows until that batch
+  // has finished creating and drawing its items.
+  uint64_t generation = g_config_generation;
+  if (g_finish_scheduled_generation == generation) return;
+  g_finish_scheduled_generation = generation;
+  dispatch_async(dispatch_get_main_queue(), ^{
+    if (generation == g_config_generation) config_finished();
+  });
 }
 
 static void handler(ConstFSEventStreamRef stream, void* context, size_t count, void* paths, const FSEventStreamEventFlags* flags, const FSEventStreamEventId* ids) {
