@@ -13,12 +13,51 @@
 #include "display_reconcile.h"
 #include "bar_level.h"
 #include "mask.h"
+#include "native_menu_windows.h"
 
 extern void forced_front_app_event();
 
 static CLOCK_CALLBACK(clock_handler) {
   struct event event = { NULL, SHELL_REFRESH };
   event_post(&event);
+}
+
+static CLOCK_CALLBACK(native_menu_switch_handler) {
+  struct bar_manager* bar_manager = context;
+  bool has_builtin_bar = false;
+  for (int i = 0; i < bar_manager->bar_count; i++) {
+    if (CGDisplayIsBuiltin(bar_manager->bars[i]->did)) {
+      has_builtin_bar = true;
+      break;
+    }
+  }
+  if (!has_builtin_bar) return;
+
+  CGEventRef event = CGEventCreate(NULL);
+  if (!event) return;
+  CGPoint cursor = CGEventGetLocation(event);
+  CFRelease(event);
+
+  double now = CFAbsoluteTimeGetCurrent();
+  bool changed = false;
+  for (int i = 0; i < bar_manager->bar_count; i++) {
+    struct bar* bar = bar_manager->bars[i];
+    if (!CGDisplayIsBuiltin(bar->did)) continue;
+    CGRect bounds = CGDisplayBounds(bar->did);
+    bool on_display = CGRectContainsPoint(bounds, cursor);
+    double depth = cursor.y - bounds.origin.y;
+    bool release_due = on_display && bar->native_menu.revealed
+                       && depth >= NATIVE_MENU_EXIT_DEPTH
+                       && bar->native_menu.exit_after > 0
+                       && now >= bar->native_menu.exit_after;
+    if (native_menu_switch_step(&bar->native_menu,
+                                on_display, depth, now,
+                                release_due && native_menu_popup_visible(bounds))) {
+      bar_order_item_windows(bar);
+      changed = true;
+    }
+  }
+  if (changed) windows_unfreeze();
 }
 
 void bar_manager_init(struct bar_manager* bar_manager) {
@@ -39,6 +78,8 @@ void bar_manager_init(struct bar_manager* bar_manager) {
   bar_manager->sleeps = false;
   bar_manager->window_level = kCGBackstopMenuLevel;
   bar_manager->topmost = false;
+  bar_manager->native_menu_switch = false;
+  bar_manager->native_menu_clock = NULL;
   bar_manager->notch_width = 200;
   bar_manager->notch_offset = 0;
   bar_manager->notch_display_height = 0;
@@ -311,6 +352,33 @@ bool bar_manager_set_topmost(struct bar_manager *bar_manager, char level, bool t
   bar_manager_reset(bar_manager);
   bar_manager->topmost = topmost;
   return true;
+}
+
+bool bar_manager_set_native_menu_switch(struct bar_manager* bar_manager, bool enabled) {
+  if (bar_manager->native_menu_switch == enabled) return false;
+
+  if (enabled) {
+    CFRunLoopTimerContext context = { 0, bar_manager, NULL, NULL, NULL };
+    bar_manager->native_menu_clock = CFRunLoopTimerCreate(
+      NULL, CFAbsoluteTimeGetCurrent() + 0.04, 0.04, 0, 0,
+      native_menu_switch_handler, &context);
+    if (!bar_manager->native_menu_clock) return false;
+    CFRunLoopAddTimer(CFRunLoopGetMain(), bar_manager->native_menu_clock,
+                      kCFRunLoopCommonModes);
+  } else {
+    CFRunLoopTimerInvalidate(bar_manager->native_menu_clock);
+    CFRelease(bar_manager->native_menu_clock);
+    bar_manager->native_menu_clock = NULL;
+  }
+  bar_manager->native_menu_switch = enabled;
+
+  for (int i = 0; i < bar_manager->bar_count; i++) {
+    struct bar* bar = bar_manager->bars[i];
+    if (!CGDisplayIsBuiltin(bar->did)) continue;
+    if (!enabled) bar->native_menu = (struct native_menu_switch) { 0 };
+    bar_order_item_windows(bar);
+  }
+  return false;
 }
 
 bool bar_manager_set_sticky(struct bar_manager *bar_manager, bool sticky) {
@@ -1155,6 +1223,11 @@ void bar_manager_handle_notification(struct bar_manager* bar_manager, struct not
 }
 
 void bar_manager_destroy(struct bar_manager* bar_manager) {
+  if (bar_manager->native_menu_clock) {
+    CFRunLoopTimerInvalidate(bar_manager->native_menu_clock);
+    CFRelease(bar_manager->native_menu_clock);
+    bar_manager->native_menu_clock = NULL;
+  }
   for (int i = 0; i < bar_manager->bar_item_count; i++) {
     struct bar_item* bar_item = bar_manager->bar_items[i];
     mach_port_t port = bar_item->event_port;
@@ -1199,6 +1272,7 @@ void bar_manager_serialize(struct bar_manager* bar_manager, FILE* rsp) {
   fprintf(rsp, "{\n"
                "%s\"position\": \"%s\",\n"
                "%s\"topmost\": \"%s\",\n"
+               "%s\"native_menu_switch\": \"%s\",\n"
                "%s\"sticky\": \"%s\",\n"
                "%s\"hidden\": \"%s\",\n"
                "%s\"shadow\": \"%s\",\n"
@@ -1209,6 +1283,7 @@ void bar_manager_serialize(struct bar_manager* bar_manager, FILE* rsp) {
                indent, bar_manager->position == POSITION_BOTTOM
                                               ? "bottom" : "top",
                indent, format_bool(bar_manager->topmost),
+               indent, format_bool(bar_manager->native_menu_switch),
                indent, format_bool(bar_manager->sticky),
                indent, format_bool(bar_manager->any_bar_hidden),
                indent, format_bool(bar_manager->shadow),

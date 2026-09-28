@@ -19,6 +19,13 @@ static struct bar_item* item(const char* name) {
 
 int main(void) {
   harness_begin();
+  SEND("--bar", "native_menu_switch=on");
+  assert(g_bar_manager.native_menu_switch);
+  assert(g_bar_manager.native_menu_clock);
+  SEND("--bar", "native_menu_switch=off");
+  assert(!g_bar_manager.native_menu_switch);
+  assert(!g_bar_manager.native_menu_clock);
+
   SEND("--add", "item", "clock", "left");
   SEND("--add", "item", "date", "left");
   SEND("--add", "item", "battery", "right");

@@ -20,7 +20,7 @@ _OBJ = alias.o background.o bar_item.o custom_events.o event.o graph.o \
 			 window.o window_reuse.o bar_manager.o display.o display_nsscreen.om group.o mach.o popup.o \
 			 animation.o workspace.om volume.o slider.o power.o wifi.om media.om \
 			 hotload.o app_windows.o layer.om surface.o context.o script.o \
-			 display_layout.o display_reconcile.o
+				 display_layout.o display_reconcile.o native_menu_windows.o
 
 OBJ  = $(patsubst %, $(ODIR)/%, $(_OBJ))
 

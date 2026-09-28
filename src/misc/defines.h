@@ -109,6 +109,7 @@
 #define PROPERTY_DISPLAY                       "display"
 #define PROPERTY_SPACE                         "space"
 #define PROPERTY_TOPMOST                       "topmost"
+#define PROPERTY_NATIVE_MENU_SWITCH            "native_menu_switch"
 #define PROPERTY_STICKY                        "sticky"
 #define PROPERTY_SHOW_IN_FULLSCREEN            "show_in_fullscreen"
 #define PROPERTY_HIDDEN                        "hidden"

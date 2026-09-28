@@ -54,6 +54,14 @@ user builds and switches.
 
 ## Documents
 
+The fork accepts `--bar native_menu_switch=on` for an auto-hidden macOS menu
+bar on a built-in display. With `topmost=window`, SketchyBar receives ordinary
+clicks in the menu-bar strip; reaching the top 8 points reveals the native
+bar. Moving below the strip for 200 ms restores SketchyBar, except while a
+native menu popup is open. External displays retain their configured window
+level. The switch is off by default and changes window levels without
+recreating the bar.
+
 - [audit.md](audit.md): security, robustness and performance audit of
   upstream 2.24.0.
 - [plan.md](plan.md): phased plan and its status.

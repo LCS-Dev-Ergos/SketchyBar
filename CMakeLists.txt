@@ -37,7 +37,7 @@ set(SKETCHYBAR_SOURCES
     bar_manager.c display.c display_nsscreen.m group.c mach.c popup.c
     animation.c workspace.m volume.c slider.c power.c wifi.m media.m
     hotload.c app_windows.c layer.m surface.c context.c script.c
-    display_layout.c display_reconcile.c)
+    display_layout.c display_reconcile.c native_menu_windows.c)
 list(TRANSFORM SKETCHYBAR_SOURCES PREPEND ${SRC}/)
 
 set(SKETCHYBAR_FRAMEWORKS
@@ -112,6 +112,7 @@ target_compile_definitions(display_reconcile_tests PRIVATE
 target_link_libraries(display_reconcile_tests PRIVATE "-framework CoreFoundation" "-framework CoreGraphics")
 
 sketchybar_test(bar_level_tests tests/bar/level.c)
+sketchybar_test(native_menu_switch_tests tests/bar/native_menu_switch.c)
 
 # Includes window.c in the test translation unit to drive its internal
 # post-decode callback with WindowServer and surface calls stubbed.

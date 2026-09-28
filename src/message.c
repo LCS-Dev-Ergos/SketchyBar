@@ -406,6 +406,11 @@ static bool handle_domain_bar(FILE *rsp, struct token domain, char *message) {
                                               evaluate_boolean_state(token,
                                                                      g_bar_manager.topmost));
     }
+  } else if (token_equals(command, PROPERTY_NATIVE_MENU_SWITCH)) {
+    struct token token = get_token(&message);
+    needs_refresh = bar_manager_set_native_menu_switch(
+      &g_bar_manager,
+      evaluate_boolean_state(token, g_bar_manager.native_menu_switch));
   } else if (token_equals(command, PROPERTY_STICKY)) {
     struct token token = get_token(&message);
     needs_refresh = bar_manager_set_sticky(&g_bar_manager,

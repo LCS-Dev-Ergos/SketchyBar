@@ -39,6 +39,8 @@ scripts the tests run write only to a temporary directory.
   fixed times, so a slow runner passes them.
 - `bar_level_tests` checks the bar background level against the item,
   desktop, normal window and menu bar levels for every `topmost` setting.
+- `native_menu_switch_tests` checks the built-in display's edge transition,
+  menu popup hold, delayed return and unchanged external-display level.
 - `window_deferred_tests` replays a captured post-decode callback after an
   embedded window is cleared and freed, including storage reuse and a heap
   window removed while a callback is pending. ASan reports a use after free

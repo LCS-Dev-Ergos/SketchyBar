@@ -2,11 +2,13 @@
 #include "bar_item.h"
 #include "misc/helpers.h"
 #include "window.h"
+#include "native_menu_switch.h"
 
 struct bar {
   bool shown;
   bool hidden;
   bool mouse_over;
+  struct native_menu_switch native_menu;
 
   uint32_t sid;
   uint32_t dsid;

@@ -83,7 +83,11 @@ static void bar_calculate_popup_anchor_for_bar_item(struct bar* bar, struct bar_
 
 void bar_order_item_windows(struct bar* bar) {
   if (bar->sid < 1 || bar->adid < 1 || !bar->shown) return;
-  window_set_level(&bar->window, bar_background_level(g_bar_manager.window_level));
+  int item_level = native_menu_switch_level(g_bar_manager.native_menu_switch,
+                                            CGDisplayIsBuiltin(bar->did),
+                                            bar->native_menu.revealed,
+                                            g_bar_manager.window_level);
+  window_set_level(&bar->window, bar_background_level(item_level));
   window_order(&bar->window, NULL, W_ABOVE);
 
   struct window* previous_window = NULL;
@@ -93,7 +97,7 @@ void bar_order_item_windows(struct bar* bar) {
     if (bar_item->position == POSITION_POPUP) continue;
 
     struct window* window = bar_item_get_window(bar_item, bar->adid);
-    window_set_level(window, g_bar_manager.window_level);
+    window_set_level(window, item_level);
 
     if (!first_window) first_window = window;
 
